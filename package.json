@@ -1,0 +1,26 @@
+{
+  "name": "app-doc-truyen",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "dev": "vite",
+    "build:web": "tsc --noEmit && vite build",
+    "build": "npm run build:web && node scripts/make-artifact.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "dexie": "^4.4.7",
+    "jszip": "^3.10.2",
+    "preact": "^10.29.8"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.10.6",
+    "linkedom": "^0.18.15",
+    "sql.js": "^1.13.0",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.5"
+  },
+  "private": true,
+  "type": "module"
+}

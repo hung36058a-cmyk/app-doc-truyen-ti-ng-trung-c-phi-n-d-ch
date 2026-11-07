@@ -1,0 +1,32 @@
+{
+  "name": "Đọc Truyện",
+  "short_name": "Đọc Truyện",
+  "description": "Đọc truyện tiếng Trung phồn thể: tra từ, dịch đoạn, lưu từ và xuất thẻ Anki.",
+  "lang": "vi",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FBFBF8",
+  "theme_color": "#0F6E6A",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
