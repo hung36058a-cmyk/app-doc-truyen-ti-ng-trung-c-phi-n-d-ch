@@ -114,11 +114,24 @@ export interface ReaderDisplay {
   paper: ReaderPaper; // 'auto' = theo giao diện sáng/tối của app
 }
 
+export type AiKeyProvider = 'gemini' | 'claude';
+
+/** Một API key người dùng nhập. Key đứng trước được dùng trước; hết lượt / hết tiền thì chuyển key sau. */
+export interface AiKey {
+  id: string;
+  provider: AiKeyProvider;
+  label: string; // tên tự đặt, ví dụ "Miễn phí", "Trả phí"
+  key: string;
+}
+
+/** save = mọi việc dùng model rẻ; quality = dịch đoạn và tạo thẻ dùng model tốt hơn. */
+export type AiMode = 'save' | 'quality';
+
 export interface AppSettings {
   meaningLang: MeaningLang;
   theme: ThemeMode;
-  anthropicApiKey: string; // chỉ dùng khi app chạy ngoài claude.ai
-  geminiApiKey: string; // chỉ dùng khi app chạy ngoài claude.ai
+  aiKeys: AiKey[]; // API key riêng, xếp theo thứ tự ưu tiên (dùng khi app chạy ngoài claude.ai)
+  aiMode: AiMode;
   reader: ReaderDisplay;
   ankiDeck: string; // tên deck khi xuất thẻ
 }

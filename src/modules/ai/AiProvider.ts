@@ -19,6 +19,16 @@ export interface CompleteOptions {
 
 export class AiUnavailableError extends Error {}
 
+/**
+ * Lỗi do KEY (hết lượt miễn phí, hết tiền nạp, key sai) chứ không do yêu cầu.
+ * ProviderChain gặp lỗi này thì thử key kế tiếp trong danh sách ưu tiên.
+ */
+export class AiKeyError extends Error {
+  constructor(message: string, readonly cooldownMs = 10 * 60_000) {
+    super(message);
+  }
+}
+
 /** Lấy JSON từ câu trả lời của AI (AI đôi khi bọc JSON trong ```json). */
 export function extractJson<T>(text: string): T {
   const start = text.search(/[[{]/);

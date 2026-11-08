@@ -42,6 +42,7 @@ export const Paragraph = memo(function Paragraph({ index, text, segmenter, saved
           <span
             key={i}
             data-t={i}
+            data-o={offsets[i]}
             class={`tok${saved.has(t.text) ? ' saved' : ''}${selectedToken === i ? ' selected' : ''}`}
           >
             {t.text}

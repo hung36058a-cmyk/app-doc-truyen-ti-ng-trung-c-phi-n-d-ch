@@ -1,8 +1,9 @@
-// ui/screens/SettingsScreen.tsx — Cài đặt: ngôn ngữ nghĩa mặc định, giao diện sáng/tối, AI đang dùng, API key.
+// ui/screens/SettingsScreen.tsx — Cài đặt: ngôn ngữ nghĩa, giao diện, deck Anki, chế độ AI, danh sách API key.
 
 import { useEffect, useState } from 'preact/hooks';
 import type { AppSettings, MeaningLang, ThemeMode } from '@/core/types';
 import { useServices } from '../context';
+import { AiKeysEditor } from '../components/AiKeysEditor';
 import type { DictState } from '../App';
 
 interface Props {
@@ -17,7 +18,7 @@ export function SettingsScreen({ settings, onChange, dictState }: Props) {
 
   useEffect(() => {
     ai.active().then((p) => setAiLabel(p?.label ?? null));
-  }, [settings.anthropicApiKey, settings.geminiApiKey]);
+  }, [settings.aiKeys]);
 
   return (
     <main class="screen">
@@ -59,45 +60,38 @@ export function SettingsScreen({ settings, onChange, dictState }: Props) {
         </div>
       </div>
 
-      <p class="section-label">AI cho nghĩa tiếng Việt và thẻ Anki</p>
+      <p class="section-label">AI (nghĩa tiếng Việt, dịch, thẻ Anki)</p>
       <div class="settings-group">
         <div class="setting">
           <span class="setting-label">
+            Chế độ
+            <small>
+              {settings.aiMode === 'save'
+                ? 'Tiết kiệm: mọi việc dùng model rẻ (Gemini Flash-Lite), rẻ hơn khoảng 6 lần.'
+                : 'Chất lượng cao: dịch đoạn và tạo thẻ dùng model tốt hơn (Gemini Flash), tốn hơn.'}
+            </small>
+          </span>
+          <div class="seg" role="group" aria-label="Chế độ AI">
+            <button aria-pressed={settings.aiMode === 'save'} onClick={() => onChange({ aiMode: 'save' })}>Tiết kiệm</button>
+            <button aria-pressed={settings.aiMode === 'quality'} onClick={() => onChange({ aiMode: 'quality' })}>Chất lượng cao</button>
+          </div>
+        </div>
+        <div class="setting">
+          <span class="setting-label">
             Đang dùng
-            <small>Trên claude.ai, app dùng Claude của tài khoản bạn. Ở app riêng: dùng key bên dưới (nhập cả hai thì ưu tiên Claude).</small>
+            <small>Trên claude.ai app dùng Claude của tài khoản bạn. Ở app riêng dùng các key bên dưới, theo thứ tự từ trên xuống.</small>
           </span>
           <span>
             <span class={`status-dot${aiLabel ? ' ok' : ''}`} />
             {aiLabel === undefined ? 'Đang kiểm tra…' : aiLabel ?? 'Chưa có'}
           </span>
         </div>
-        <div class="setting">
-          <label class="setting-label" for="set-gemini">
-            Gemini API key
-            <small>Có gói miễn phí. Lấy key ở aistudio.google.com → Get API key. Lưu trên máy này.</small>
-          </label>
-          <input
-            id="set-gemini"
-            type="password"
-            autocomplete="off"
-            placeholder="AIza…"
-            value={settings.geminiApiKey}
-            onChange={(e) => onChange({ geminiApiKey: e.currentTarget.value.trim() })}
-          />
-        </div>
-        <div class="setting">
-          <label class="setting-label" for="set-key">
-            Claude API key
-            <small>Trả phí theo lượt dùng (platform.claude.com). Lưu trên máy này.</small>
-          </label>
-          <input
-            id="set-key"
-            type="password"
-            autocomplete="off"
-            placeholder="sk-ant-…"
-            value={settings.anthropicApiKey}
-            onChange={(e) => onChange({ anthropicApiKey: e.currentTarget.value })}
-          />
+        <div class="setting setting-block">
+          <span class="setting-label">
+            API key theo thứ tự ưu tiên
+            <small>Key số 1 dùng trước. Hết lượt miễn phí hoặc hết tiền thì tự chuyển sang key kế tiếp. Key lưu trên máy này.</small>
+          </span>
+          <AiKeysEditor keys={settings.aiKeys} onChange={(aiKeys) => { ai.clearResting(); onChange({ aiKeys }); }} restingReason={(id) => ai.restingReason(id)} />
         </div>
       </div>
 

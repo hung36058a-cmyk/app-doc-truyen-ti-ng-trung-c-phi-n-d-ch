@@ -37,7 +37,8 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
   const [sel, setSel] = useState<Selection | null>(null);
   const [showToc, setShowToc] = useState(false);
   const [showDisplay, setShowDisplay] = useState(false);
-  const [transPara, setTransPara] = useState<number | null>(null);
+  // đoạn đang mở khung dịch + vị trí ký tự nơi ngón tay bấm giữ (để chọn sẵn câu đó)
+  const [trans, setTrans] = useState<{ para: number; offset: number | null } | null>(null);
   const body = useRef<HTMLDivElement>(null);
   const restoreTo = useRef<number | null>(null);
 
@@ -128,15 +129,17 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
   };
 
   // bấm giữ một đoạn -> dịch nguyên đoạn
-  const longPress = useLongPress<number>(
+  const longPress = useLongPress<{ para: number; offset: number | null }>(
     (target) => {
       const p = target.closest<HTMLElement>('[data-p]');
-      return p ? Number(p.dataset.p) : null;
+      if (!p) return null;
+      const tok = target.closest<HTMLElement>('[data-o]');
+      return { para: Number(p.dataset.p), offset: tok ? Number(tok.dataset.o) : null };
     },
-    (para) => {
+    (hit) => {
       setSel(null);
       setShowDisplay(false);
-      setTransPara(para);
+      setTrans(hit);
     },
   );
 
@@ -158,7 +161,7 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
   };
 
   const ch = book?.chapters[chapter];
-  const sheetOpen = sel !== null || transPara !== null || showDisplay;
+  const sheetOpen = sel !== null || trans !== null || showDisplay;
 
   return (
     <div class="reader" data-paper={d.paper} data-font={d.font} style={displayVars}>
@@ -197,7 +200,7 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
                   segmenter={segmenter}
                   saved={saved}
                   selectedToken={sel?.para === i ? sel.token : null}
-                  highlighted={transPara === i}
+                  highlighted={trans?.para === i}
                   onTap={onTap}
                 />
               ))}
@@ -230,14 +233,15 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
         />
       )}
 
-      {transPara !== null && ch && (
+      {trans !== null && ch && (
         <TranslationSheet
-          key={`${chapter}-${transPara}`}
-          paragraph={ch.paragraphs[transPara]}
-          previous={ch.paragraphs[transPara - 1] ?? ''}
+          key={`${chapter}-${trans.para}-${trans.offset}`}
+          paragraph={ch.paragraphs[trans.para]}
+          previous={ch.paragraphs[trans.para - 1] ?? ''}
+          initialOffset={trans.offset}
           lang={settings.meaningLang}
           onLang={(l) => onSettings({ meaningLang: l })}
-          onClose={() => setTransPara(null)}
+          onClose={() => setTrans(null)}
         />
       )}
 

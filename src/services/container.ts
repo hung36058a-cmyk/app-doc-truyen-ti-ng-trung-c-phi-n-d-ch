@@ -7,7 +7,8 @@ import { MaxMatchSegmenter } from '@/modules/segmenter/MaxMatchSegmenter';
 import type { Segmenter } from '@/modules/segmenter/Segmenter';
 import { ClaudeArtifactProvider } from '@/modules/ai/ClaudeArtifactProvider';
 import { AnthropicApiProvider } from '@/modules/ai/AnthropicApiProvider';
-import { ProviderChain } from '@/modules/ai/ProviderChain';
+import { ProviderChain, type ChainEntry } from '@/modules/ai/ProviderChain';
+import type { AiKey } from '@/core/types';
 import { GeminiProvider } from '@/modules/ai/GeminiProvider';
 import { createDexieStorage } from '@/modules/storage/DexieStorage';
 import type { Storage } from '@/modules/storage/Storage';
@@ -33,12 +34,24 @@ export function createServices(): Services {
     hanvietUrl: './data/hanviet.tsv',
   });
   const segmenter = new MaxMatchSegmenter(dictionary);
-  // Thứ tự ưu tiên: Claude trên claude.ai trước, rồi tới API key riêng (Claude, rồi Gemini)
-  const ai = new ProviderChain([
-    new ClaudeArtifactProvider(),
-    new AnthropicApiProvider(() => storage.settings.load().anthropicApiKey),
-    new GeminiProvider(() => storage.settings.load().geminiApiKey),
-  ]);
+  // Thứ tự ưu tiên: Claude trên claude.ai trước, rồi tới các API key riêng theo thứ tự người dùng xếp
+  const artifactClaude = new ClaudeArtifactProvider();
+  const byKey = new Map<string, ChainEntry>(); // giữ instance theo key để nhớ model đang chạy được
+  const keyEntry = (k: AiKey): ChainEntry => {
+    const cacheId = `${k.provider}|${k.key}|${k.label}`;
+    let e = byKey.get(cacheId);
+    if (!e) {
+      const label = `${k.provider === 'gemini' ? 'Gemini' : 'Claude'} · ${k.label}`;
+      const provider = k.provider === 'gemini' ? new GeminiProvider(k.key, label) : new AnthropicApiProvider(k.key, label);
+      e = { id: k.id, provider };
+      byKey.set(cacheId, e);
+    }
+    return e;
+  };
+  const ai = new ProviderChain(
+    () => [{ id: 'claude-ai', provider: artifactClaude }, ...storage.settings.load().aiKeys.map(keyEntry)],
+    () => storage.settings.load().aiMode,
+  );
   const meanings = new MeaningService(dictionary, ai, storage.meanings);
   const translations = new TranslationService(ai, storage.translations);
   const cards = new CardService(ai, dictionary, loadSqlJs);

@@ -5,8 +5,8 @@ import type { AppSettings } from './types';
 export const DEFAULT_SETTINGS: AppSettings = {
   meaningLang: 'vi',
   theme: 'system',
-  anthropicApiKey: '',
-  geminiApiKey: '',
+  aiKeys: [],
+  aiMode: 'save',
   reader: { fontSize: 21, lineHeight: 1.9, paraSpacing: 0.9, margin: 24, font: 'serif', paper: 'auto' },
   ankiDeck: 'zhongwenB1',
 };

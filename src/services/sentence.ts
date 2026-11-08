@@ -13,3 +13,28 @@ export function sentenceAt(paragraph: string, offset: number): string {
   while (end < chars.length && (ENDERS.test(chars[end]) || CLOSERS.test(chars[end]))) end++;
   return chars.slice(start, end).join('').replace(/^[」』"”\s]+/, '').trim();
 }
+
+export interface SentenceSpan {
+  text: string;
+  start: number; // vị trí ký tự bắt đầu trong đoạn
+  end: number; // vị trí ký tự kết thúc (không gồm)
+}
+
+/** Cắt đoạn thành từng câu. Dấu đóng ngoặc ngay sau dấu kết câu (。」) thuộc về câu trước. */
+export function splitSentences(paragraph: string): SentenceSpan[] {
+  const chars = [...paragraph];
+  const out: SentenceSpan[] = [];
+  let start = 0;
+  let i = 0;
+  while (i < chars.length) {
+    if (ENDERS.test(chars[i])) {
+      let end = i + 1;
+      while (end < chars.length && (ENDERS.test(chars[end]) || CLOSERS.test(chars[end]))) end++;
+      out.push({ text: chars.slice(start, end).join(''), start, end });
+      start = end;
+      i = end;
+    } else i++;
+  }
+  if (start < chars.length) out.push({ text: chars.slice(start).join(''), start, end: chars.length });
+  return out.filter((s) => s.text.trim());
+}

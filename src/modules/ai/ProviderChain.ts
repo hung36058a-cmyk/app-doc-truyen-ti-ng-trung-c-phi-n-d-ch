@@ -1,26 +1,74 @@
-// modules/ai/ProviderChain.ts — Chọn nhà cung cấp AI đầu tiên dùng được trong danh sách.
+// modules/ai/ProviderChain.ts — Dùng các nhà cung cấp AI theo thứ tự ưu tiên.
+// Nhà cung cấp đứng trước báo lỗi KEY (hết lượt, hết tiền, key sai) thì tạm bỏ qua nó một thời gian
+// và thử nhà cung cấp kế tiếp. Chế độ Tiết kiệm ép mọi yêu cầu dùng model rẻ.
 
-import { AiUnavailableError, type AiProvider, type CompleteOptions } from './AiProvider';
+import { AiKeyError, AiUnavailableError, type AiProvider, type CompleteOptions } from './AiProvider';
+import type { AiMode } from '@/core/types';
+
+export interface ChainEntry {
+  id: string; // khóa ổn định để nhớ thời gian tạm nghỉ
+  provider: AiProvider;
+}
 
 export class ProviderChain implements AiProvider {
-  constructor(private providers: AiProvider[]) {}
+  private resting = new Map<string, { until: number; reason: string }>();
+
+  constructor(
+    private getEntries: () => ChainEntry[],
+    private getMode: () => AiMode,
+  ) {}
 
   get label() {
-    return this.providers.map((p) => p.label).join(' / ');
+    return this.getEntries().map((e) => e.provider.label).join(' / ');
   }
 
+  private isResting(id: string): boolean {
+    const r = this.resting.get(id);
+    if (r && r.until > Date.now()) return true;
+    this.resting.delete(id);
+    return false;
+  }
+
+  /** Nhà cung cấp sẽ được dùng cho yêu cầu kế tiếp (để hiện trong Cài đặt). */
   async active(): Promise<AiProvider | null> {
-    for (const p of this.providers) if (await p.isAvailable()) return p;
+    for (const e of this.getEntries()) if (!this.isResting(e.id) && (await e.provider.isAvailable())) return e.provider;
     return null;
+  }
+
+  /** Lý do một key đang tạm nghỉ (null nếu không nghỉ). */
+  restingReason(id: string): string | null {
+    return this.isResting(id) ? this.resting.get(id)!.reason : null;
   }
 
   async isAvailable(): Promise<boolean> {
     return (await this.active()) !== null;
   }
 
-  async complete(prompt: string, opts?: CompleteOptions): Promise<string> {
-    const p = await this.active();
-    if (!p) throw new AiUnavailableError('Chưa có AI: nhập Gemini hoặc Claude API key trong Cài đặt.');
-    return p.complete(prompt, opts);
+  async complete(prompt: string, opts: CompleteOptions = {}): Promise<string> {
+    const o = this.getMode() === 'save' ? { ...opts, quality: 'quick' as const } : opts;
+    const failures: string[] = [];
+    let tried = 0;
+    for (const e of this.getEntries()) {
+      if (this.isResting(e.id)) {
+        failures.push(`${e.provider.label}: ${this.resting.get(e.id)!.reason}`);
+        continue;
+      }
+      if (!(await e.provider.isAvailable())) continue;
+      tried++;
+      try {
+        return await e.provider.complete(prompt, o);
+      } catch (err) {
+        if (!(err instanceof AiKeyError)) throw err;
+        this.resting.set(e.id, { until: Date.now() + err.cooldownMs, reason: err.message });
+        failures.push(`${e.provider.label}: ${err.message}`);
+      }
+    }
+    if (!tried && !failures.length) throw new AiUnavailableError('Chưa có AI: thêm API key trong Cài đặt.');
+    throw new Error(`Không key nào dùng được. ${failures.join(' · ')}.`);
+  }
+
+  /** Cho phép thử lại ngay các key đang tạm nghỉ (ví dụ sau khi vừa nạp tiền). */
+  clearResting(): void {
+    this.resting.clear();
   }
 }
