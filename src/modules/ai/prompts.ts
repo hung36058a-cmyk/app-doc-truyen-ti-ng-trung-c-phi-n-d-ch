@@ -1,5 +1,25 @@
 // modules/ai/prompts.ts — Toàn bộ prompt gửi cho AI nằm ở đây, để chỉnh nội dung không cần đụng code khác.
 
+/** Dịch MỘT câu và viết luôn âm Hán Việt của cả câu (một lần gọi AI cho cả hai). */
+export function translateSentencePrompt(sentence: string, target: 'vi' | 'en', context: string): string {
+  const lang = target === 'vi' ? 'tiếng Việt' : 'tiếng Anh';
+  return `Câu trong truyện tiếng Trung phồn thể:
+${sentence}
+${context ? `Ngữ cảnh (phần ngay trước, KHÔNG dịch): ${context}\n` : ''}
+Trả lời đúng 2 phần, không thêm gì khác:
+Dòng 1: "HÁN VIỆT: " rồi âm Hán Việt của TỪNG chữ Hán trong câu theo đúng thứ tự, viết thường, cách nhau bằng dấu cách,
+bỏ qua dấu câu; chọn âm Hán Việt đúng với nghĩa của chữ trong câu (ví dụ 眼 = nhãn, 該 = cai, 不知道 = bất tri đạo).
+Từ dòng 2: bản dịch ${lang} tự nhiên, sát nghĩa, giữ cách xưng hô hợp với nhân vật.`;
+}
+
+/** Tách câu trả lời của translateSentencePrompt thành { hanviet, translation }. Chịu được câu trả lời đang viết dở. */
+export function parseSentenceReply(raw: string): { hanviet: string; translation: string } {
+  const text = raw.replace(/^\s+/, '');
+  const m = /^\**\s*HÁN\s*VIỆT\s*\**\s*[:：]\s*(.*)(?:\n|$)/i.exec(text);
+  if (!m) return { hanviet: '', translation: text.trim() };
+  return { hanviet: m[1].replace(/\*+/g, '').trim(), translation: text.slice(m[0].length).trim() };
+}
+
 export function translateParagraphPrompt(paragraph: string, target: 'vi' | 'en', context: string): string {
   const lang = target === 'vi' ? 'tiếng Việt' : 'tiếng Anh';
   return `Dịch đoạn văn trong truyện dưới đây sang ${lang} tự nhiên, sát nghĩa, giữ giọng văn và cách xưng hô hợp với nhân vật.

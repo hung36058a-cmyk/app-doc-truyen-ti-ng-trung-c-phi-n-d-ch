@@ -2,7 +2,7 @@
 
 import type { MeaningLang } from '@/core/types';
 import type { AiProvider } from '@/modules/ai/AiProvider';
-import { translateParagraphPrompt } from '@/modules/ai/prompts';
+import { parseSentenceReply, translateParagraphPrompt, translateSentencePrompt } from '@/modules/ai/prompts';
 import type { TranslationCache } from '@/modules/storage/Storage';
 
 export class TranslationService {
@@ -34,5 +34,26 @@ export class TranslationService {
     ).trim();
     if (text) await this.cache.set(key, text);
     return text;
+  }
+
+  /** Dịch một câu kèm âm Hán Việt cả câu do AI viết. onText nhận kết quả đang viết dở (đã tách 2 phần). */
+  async translateSentence(
+    sentence: string,
+    target: MeaningLang,
+    context: string,
+    onText?: (partial: { hanviet: string; translation: string }) => void,
+  ): Promise<{ hanviet: string; translation: string }> {
+    const key = `${target}|hv|${sentence}`;
+    const hit = await this.cache.get(key);
+    if (hit) return parseSentenceReply(hit);
+    const raw = (
+      await this.ai.complete(translateSentencePrompt(sentence, target, context.slice(-300)), {
+        quality: 'best',
+        onText: onText ? (t) => onText(parseSentenceReply(t)) : undefined,
+      })
+    ).trim();
+    const parsed = parseSentenceReply(raw);
+    if (parsed.translation) await this.cache.set(key, raw);
+    return parsed;
   }
 }

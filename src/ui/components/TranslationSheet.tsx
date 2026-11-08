@@ -31,6 +31,7 @@ type Result = { status: 'loading'; partial: string } | { status: 'done'; text: s
 export function TranslationSheet(p: Props) {
   const { translations, segmenter, dictionary } = useServices();
   const [result, setResult] = useState<Result>({ status: 'loading', partial: '' });
+  const [aiHanviet, setAiHanviet] = useState(''); // Hán Việt cả câu do AI viết (chính xác hơn bảng chữ)
   const run = useRef(0);
 
   // từ trong câu, kèm vị trí trong đoạn (để chạm từ là tra đúng chỗ)
@@ -47,7 +48,7 @@ export function TranslationSheet(p: Props) {
     .filter((t) => t.isWord)
     .map((t) => dictionary.lookup(t.text)?.senses[0]?.pinyin.replace(/\s+/g, '') ?? t.text)
     .join(' ');
-  const hanviet = words
+  const dictHanviet = words
     .filter((t) => t.isWord)
     .map((t) => dictionary.hanviet(t.text))
     .join(' ');
@@ -59,12 +60,30 @@ export function TranslationSheet(p: Props) {
 
   useEffect(() => {
     const id = ++run.current; // bỏ kết quả cũ khi đã đổi câu, đổi chế độ hoặc đổi ngôn ngữ
+    const live = () => id === run.current;
     setResult({ status: 'loading', partial: '' });
-    translations
-      .translate(target.text, p.lang, target.context, (t) => id === run.current && setResult({ status: 'loading', partial: t }))
-      .then((text) => id === run.current && setResult({ status: 'done', text }))
-      .catch((e: Error) => id === run.current && setResult({ status: 'error', message: e.message }));
-  }, [target.text, p.lang]);
+    setAiHanviet('');
+    const fail = (e: Error) => live() && setResult({ status: 'error', message: e.message });
+    if (p.mode === 'paragraph') {
+      translations
+        .translate(target.text, p.lang, target.context, (t) => live() && setResult({ status: 'loading', partial: t }))
+        .then((text) => live() && setResult({ status: 'done', text }))
+        .catch(fail);
+    } else {
+      translations
+        .translateSentence(target.text, p.lang, target.context, (r) => {
+          if (!live()) return;
+          if (r.hanviet) setAiHanviet(r.hanviet);
+          setResult({ status: 'loading', partial: r.translation });
+        })
+        .then((r) => {
+          if (!live()) return;
+          setAiHanviet(r.hanviet);
+          setResult({ status: 'done', text: r.translation });
+        })
+        .catch(fail);
+    }
+  }, [target.text, p.lang, p.mode]);
 
   useEffect(() => () => { run.current = -1; }, []);
 
@@ -91,7 +110,9 @@ export function TranslationSheet(p: Props) {
             <div class="sentence-reading">
               <div class="han" lang="zh-Hant">{p.sentence.text}</div>
               <div class="meta">[{pinyin}]</div>
-              <div class="meta">[{hanviet}]</div>
+              <div class={`meta${aiHanviet ? '' : ' hv-draft'}`} title={aiHanviet ? 'Hán Việt do AI viết' : 'Hán Việt tạm theo bảng chữ, đang chờ AI'}>
+                [{aiHanviet || dictHanviet}]
+              </div>
             </div>
           </>
         ) : (

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'preact/hooks';
 import type { AppSettings } from '@/core/types';
 import { createServices } from '@/services/container';
 import { ServicesContext } from './context';
+import { APP_VERSION } from '@/core/changelog';
 import { BottomNav, type Tab } from './components/BottomNav';
 import { LibraryScreen } from './screens/LibraryScreen';
 import { ReaderScreen } from './screens/ReaderScreen';
@@ -67,6 +68,7 @@ export function App() {
           <BottomNav current={tab} hrefs={TAB_HASH} />
         </div>
       )}
+      <span class={`version-tag${readingBookId ? ' in-reader' : ''}`} aria-hidden="true">v{APP_VERSION}</span>
     </ServicesContext.Provider>
   );
 }

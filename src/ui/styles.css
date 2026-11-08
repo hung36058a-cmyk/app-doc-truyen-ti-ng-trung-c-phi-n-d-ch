@@ -413,3 +413,13 @@ label.btn, label.add-tile { cursor: pointer; }
 /* tra từ mở chồng lên khung dịch câu: nằm lớp trên, nền mờ để chạm ra ngoài là đóng tra từ */
 .trans-sheet ~ .backdrop { z-index: 30; background: rgba(0, 0, 0, 0.3); }
 .trans-sheet ~ .sheet { z-index: 31; }
+
+/* ---------- v0.10: Hán Việt do AI, số phiên bản ở góc ---------- */
+.hv-draft { opacity: 0.55; }
+.version-tag {
+  position: fixed; z-index: 4; pointer-events: none;
+  right: calc(8px + env(safe-area-inset-right, 0px));
+  bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 4px);
+  font: 600 10px/1 var(--font-ui); letter-spacing: 0.04em; color: var(--faint); opacity: 0.8;
+}
+.version-tag.in-reader { bottom: calc(env(safe-area-inset-bottom, 0px) + 4px); }

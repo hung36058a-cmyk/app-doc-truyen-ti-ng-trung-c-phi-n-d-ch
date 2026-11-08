@@ -9,6 +9,14 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.0',
+    date: '08/11/2026',
+    notes: [
+      'Dịch câu: AI viết luôn dòng Hán Việt của cả câu, chọn đúng âm theo nghĩa (cùng một lần gọi với bản dịch)',
+      'Số phiên bản hiện nhỏ ở góc dưới màn hình',
+    ],
+  },
+  {
     version: '0.9',
     date: '08/11/2026',
     notes: [
