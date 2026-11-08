@@ -46,6 +46,13 @@ export class GeminiProvider implements AiProvider {
         if (/API_KEY_INVALID|API key not valid/i.test(body)) throw new Error('Gemini API key không đúng.');
         if (res.status === 403 && !/not found|not supported|permission/i.test(body)) throw new Error('Gemini từ chối key này.');
       }
+      if (res.status === 402) {
+        // Dự án Google của key đang bật thanh toán trả trước và hết tiền: mọi model đều bị chặn, không thử tiếp
+        throw new Error(
+          'Key Gemini này thuộc dự án Google đã bật thanh toán và hết tiền nạp trước (lỗi 402). ' +
+            'Tạo key mới trong một dự án KHÔNG bật thanh toán để dùng gói miễn phí, hoặc nạp thêm tiền.',
+        );
+      }
       if (res.status === 429) throw new Error('Đã hết lượt miễn phí của Gemini, thử lại sau ít phút hoặc ngày mai.');
       lastError = `Gemini báo lỗi ${res.status}.`;
       // 404 (model không còn) hoặc lỗi quyền theo model: thử model kế tiếp
