@@ -20,16 +20,19 @@ export interface CardPromptInput {
 
 /** Tạo nội dung mặt sau thẻ Anki theo mẫu thẻ của người dùng (deck zhongwenB1). */
 export function cardContentPrompt(w: CardPromptInput): string {
-  return `Bạn soạn thẻ từ vựng Anki cho người Việt học tiếng Trung PHỒN THỂ (Đài Loan), trình độ khoảng HSK 4.
+  return `Bạn soạn thẻ từ vựng Anki cho người Việt học tiếng Trung PHỒN THỂ (Đài Loan).
 Từ: ${w.word}
 Câu gốc trong truyện: ${w.sentence || '(không có)'}
 Dữ liệu từ điển (có thể thiếu hoặc chưa sát ngữ cảnh): pinyin "${w.pinyin}", Hán Việt "${w.hanviet}", nghĩa Anh "${w.english}"
 
 Yêu cầu:
 - Chọn nghĩa đúng theo câu gốc.
-- Mọi câu tiếng Trung viết bằng chữ PHỒN THỂ, tự nhiên, ngắn, mỗi câu đều chứa đúng từ "${w.word}".
+- Mọi câu tiếng Trung viết bằng chữ PHỒN THỂ, tự nhiên, mỗi câu đều chứa đúng từ "${w.word}".
+- "examples": 2–3 câu ví dụ trình độ B2 TRỞ LÊN (TOCFL Band C, HSK 5–6): ngữ cảnh đời sống hoặc báo chí thật,
+  có cấu trúc câu phức (liên từ, mệnh đề phụ, thành ngữ…) và từ vựng nâng cao. KHÔNG viết câu ngắn, đơn giản kiểu sơ cấp.
+  Chỉ viết câu tiếng Trung, KHÔNG kèm bản dịch.
 - "patterns": 1–3 cấu trúc hay đi kèm, dạng "${w.word} + ..." kèm nghĩa Việt ngắn.
-- "comparison": phân biệt với 1 từ gần nghĩa hay nhầm, một dòng, ví dụ "稱呼 (trang trọng, cách xưng hô) – 叫 (gọi thông thường)". Không có từ nào hay nhầm thì để "".
+- "comparison": phân biệt với 1 từ gần nghĩa hay nhầm. Mảng, MỖI TỪ MỘT PHẦN TỬ, ví dụ ["稱呼 (trang trọng, cách xưng hô)", "叫 (gọi thông thường)"]. Không có từ nào hay nhầm thì để [].
 
 Trả về DUY NHẤT một JSON, không giải thích:
 {"pinyin": "pinyin có dấu thanh, các âm tiết cách nhau bằng dấu cách",
@@ -37,10 +40,9 @@ Trả về DUY NHẤT một JSON, không giải thích:
  "vietnamese": "nghĩa tiếng Việt ngắn gọn, các nghĩa cách nhau bằng dấu ;",
  "english": "nghĩa tiếng Anh ngắn gọn",
  "partOfSpeech": "từ loại bằng tiếng Việt",
- "sentenceVi": "bản dịch tiếng Việt của câu gốc",
- "examples": [{"zh": "câu ví dụ", "vi": "bản dịch"}, {"zh": "...", "vi": "..."}],
+ "examples": ["câu ví dụ B2+", "..."],
  "patterns": ["..."],
- "comparison": "..."}`;
+ "comparison": ["từ A (giải thích)", "từ B (giải thích)"]}`;
 }
 
 export function vietMeaningPrompt(word: string, sentence: string, englishHint: string): string {

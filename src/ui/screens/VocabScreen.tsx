@@ -3,7 +3,7 @@
 
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { AppSettings, CardContent, SavedWord } from '@/core/types';
-import { compactPinyin } from '@/modules/anki/cardHtml';
+import { compactPinyin, comparisonLines } from '@/modules/anki/cardHtml';
 import { isClaudeHosted, saveFile, SaveCancelled } from '@/modules/download/saveFile';
 import { useServices } from '../context';
 import { CardEditor } from '../components/CardEditor';
@@ -264,14 +264,14 @@ function CardPreview({ w }: { w: SavedWord }) {
       <div class="meta">= {c.english}{c.partOfSpeech && `; (${c.partOfSpeech})`}</div>
       <div class="card-examples" lang="zh-Hant">
         {w.sentence && (
-          <div>{bold(w.sentence)} <span class="tag-src">câu gốc</span>{c.sentenceVi && <div class="vi" lang="vi">{c.sentenceVi}</div>}</div>
+          <div>{bold(w.sentence)} <span class="tag-src">câu gốc</span></div>
         )}
         {c.examples.map((e, i) => (
-          <div key={i}>{bold(e.zh)}{e.vi && <div class="vi" lang="vi">{e.vi}</div>}</div>
+          <div key={i}>{bold(e.zh)}</div>
         ))}
       </div>
       {c.patterns.length > 0 && <div class="card-patterns">{c.patterns.map((p, i) => <div key={i}>{p}</div>)}</div>}
-      {c.comparison && <div class="card-compare">{c.comparison}</div>}
+      {c.comparison && <div class="card-compare">{comparisonLines(c.comparison).map((l, i) => <div key={i}>{l}</div>)}</div>}
     </div>
   );
 }

@@ -9,6 +9,15 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '0.8',
+    date: '08/11/2026',
+    notes: [
+      'Thẻ Anki: câu ví dụ không còn kèm nghĩa tiếng Việt',
+      'Phân biệt từ gần nghĩa: mỗi từ một dòng (thẻ cũ cũng được tách)',
+      'Câu ví dụ do AI viết nâng lên trình độ B2 trở lên; câu đầu vẫn là câu gốc trong truyện',
+    ],
+  },
+  {
     version: '0.7',
     date: '08/11/2026',
     notes: [

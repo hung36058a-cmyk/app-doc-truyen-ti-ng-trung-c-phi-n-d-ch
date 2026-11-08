@@ -31,20 +31,21 @@ export class CardService {
     const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
     const examples = Array.isArray(r.examples)
       ? r.examples
-          .map((e) => ({ zh: str((e as { zh?: unknown }).zh), vi: str((e as { vi?: unknown }).vi) }))
+          .map((e) => ({ zh: typeof e === 'string' ? e.trim() : str((e as { zh?: unknown }).zh), vi: '' }))
           .filter((e) => e.zh)
           .slice(0, 3)
       : [];
+    const comparison = Array.isArray(r.comparison) ? r.comparison.map(str).filter(Boolean).join('\n') : str(r.comparison);
     return {
       pinyin: dictPinyin || str(r.pinyin),
       hanviet: mergeHanviet(dictHv, str(r.hanviet).toLowerCase() || undefined),
       vietnamese: str(r.vietnamese) || w.vietnamese,
       english: str(r.english) || w.english,
       partOfSpeech: str(r.partOfSpeech),
-      sentenceVi: str(r.sentenceVi),
+      sentenceVi: '',
       examples,
       patterns: Array.isArray(r.patterns) ? r.patterns.map(str).filter(Boolean).slice(0, 3) : [],
-      comparison: str(r.comparison),
+      comparison,
       generatedAt: Date.now(),
     };
   }

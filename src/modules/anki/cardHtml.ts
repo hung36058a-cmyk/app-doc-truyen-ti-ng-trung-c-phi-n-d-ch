@@ -1,6 +1,6 @@
 // modules/anki/cardHtml.ts — Chuyển nội dung thẻ thành HTML sạch cho mặt sau thẻ Anki,
 // theo đúng thứ tự mẫu thẻ của người dùng:
-// 1 (pinyin) [Hán Việt]: nghĩa Việt · 2 = nghĩa Anh; (từ loại) · 3 câu gốc · 4 câu ví dụ AI
+// 1 (pinyin) [Hán Việt]: nghĩa Việt · 2 = nghĩa Anh; (từ loại) · 3 câu gốc · 4 câu ví dụ AI (B2+, không dịch)
 // 5 cấu trúc đi kèm · 6 phân biệt từ gần nghĩa. Muốn đổi bố cục thẻ: chỉ sửa file này.
 
 import type { CardContent } from '@/core/types';
@@ -29,16 +29,21 @@ export function cardBackHtml(word: string, sentence: string, c: CardContent): st
   lines.push(`<div>= ${escapeHtml(c.english)}${c.partOfSpeech ? `; (${escapeHtml(c.partOfSpeech)})` : ''}</div>`);
 
   const ex: string[] = [];
-  if (sentence) ex.push(exampleLine(sentence, c.sentenceVi, word));
-  for (const e of c.examples) if (e.zh.trim()) ex.push(exampleLine(e.zh, e.vi, word));
+  if (sentence) ex.push(boldWord(sentence.trim(), word)); // câu gốc trong truyện luôn đứng đầu
+  for (const e of c.examples) if (e.zh.trim()) ex.push(boldWord(e.zh.trim(), word));
   if (ex.length) lines.push(`<br><div>${ex.join('<br>')}</div>`);
 
   const pats = c.patterns.filter((p) => p.trim());
   if (pats.length) lines.push(`<br><div>${pats.map((p) => escapeHtml(p)).join('<br>')}</div>`);
-  if (c.comparison.trim()) lines.push(`<br><div>${escapeHtml(c.comparison).replace(/\n/g, '<br>')}</div>`);
+  const cmp = comparisonLines(c.comparison);
+  if (cmp.length) lines.push(`<br><div>${cmp.map(escapeHtml).join('<br>')}</div>`);
   return lines.join('');
 }
 
-function exampleLine(zh: string, vi: string, word: string): string {
-  return `${boldWord(zh.trim(), word)}${vi.trim() ? ` <span style='color:#888'>(${escapeHtml(vi.trim())})</span>` : ''}`;
+/** Phân biệt từ gần nghĩa: mỗi từ một dòng. Thẻ cũ viết chung một dòng "A (…) – B (…)" cũng được tách ra. */
+export function comparisonLines(text: string): string[] {
+  return text
+    .split(/\n|\s+[–—-]\s+/)
+    .map((l) => l.trim())
+    .filter(Boolean);
 }

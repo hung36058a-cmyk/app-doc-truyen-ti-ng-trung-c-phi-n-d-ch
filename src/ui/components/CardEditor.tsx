@@ -11,11 +11,10 @@ interface Props {
 }
 
 /** Ví dụ sửa dưới dạng chữ: mỗi dòng "câu tiếng Trung | bản dịch". */
-const examplesToText = (ex: CardContent['examples']) => ex.map((e) => (e.vi ? `${e.zh} | ${e.vi}` : e.zh)).join('\n');
+const examplesToText = (ex: CardContent['examples']) => ex.map((e) => e.zh).join('\n');
 const textToExamples = (t: string) =>
   t.split('\n').map((l) => l.trim()).filter(Boolean).map((l) => {
-    const [zh, ...rest] = l.split('|');
-    return { zh: zh.trim(), vi: rest.join('|').trim() };
+    return { zh: l.split('|')[0].trim(), vi: '' };
   });
 
 export function CardEditor({ word, card, onSave, onCancel }: Props) {
@@ -50,16 +49,15 @@ export function CardEditor({ word, card, onSave, onCancel }: Props) {
         {field('english', 'Nghĩa tiếng Anh')}
         {field('partOfSpeech', 'Từ loại')}
       </div>
-      {field('sentenceVi', 'Dịch câu gốc', true)}
       <div class="field">
-        <label for={id('examples')}>Câu ví dụ <small>mỗi dòng: câu | bản dịch</small></label>
+        <label for={id('examples')}>Câu ví dụ <small>mỗi dòng một câu</small></label>
         <textarea id={id('examples')} rows={3} lang="zh-Hant" value={examples} onInput={(e) => setExamples(e.currentTarget.value)} />
       </div>
       <div class="field">
         <label for={id('patterns')}>Cấu trúc đi kèm <small>mỗi dòng một cấu trúc</small></label>
         <textarea id={id('patterns')} rows={2} value={patterns} onInput={(e) => setPatterns(e.currentTarget.value)} />
       </div>
-      {field('comparison', 'Phân biệt từ gần nghĩa', true)}
+      {field('comparison', 'Phân biệt từ gần nghĩa (mỗi từ một dòng)', true)}
       <div class="row">
         <button type="button" class="btn" onClick={onCancel}>Hủy</button>
         <button type="submit" class="btn btn-primary">Lưu thẻ</button>
