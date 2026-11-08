@@ -7,7 +7,14 @@
 import JSZip from 'jszip';
 import type { Book, Chapter, TocItem } from '@/core/types';
 
-const BLOCK_SELECTOR = 'p, h1, h2, h3, h4, h5, h6, li, blockquote, pre, div';
+/** Thẻ tạo ra chỗ ngắt đoạn. */
+const BLOCK_TAGS = new Set([
+  'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'ul', 'ol', 'dl', 'dt', 'dd', 'blockquote', 'pre', 'div',
+  'section', 'article', 'header', 'footer', 'aside', 'main', 'nav', 'figure', 'figcaption',
+  'table', 'tr', 'td', 'th', 'hr', 'center',
+]);
+/** Thẻ bỏ qua hẳn (không phải chữ truyện; rt/rp là phiên âm ruby). */
+const SKIP_TAGS = new Set(['script', 'style', 'head', 'title', 'rt', 'rp', 'svg', 'math']);
 
 export class EpubError extends Error {}
 
@@ -95,34 +102,37 @@ export async function parseEpub(file: Blob, fallbackTitle = 'Truyện không tê
 
 // ---------- trích chữ ----------
 
-/** Lấy từng khối chữ "lá" (không chứa khối con) làm một đoạn; ghi lại id nằm ở đâu để cắt chương. */
+/**
+ * Duyệt cây HTML theo thứ tự, gom chữ thành đoạn: mỗi khối (p, div, h1...) hoặc <br> là một chỗ ngắt đoạn.
+ * Bắt được cả chữ nằm trần trong <body>/<div> cạnh tiêu đề (nhiều EPUB kiểu "<h3>3</h3>chữ<br/>chữ").
+ * Mỗi id trỏ vào đoạn chứa nó, hoặc đoạn kế tiếp nếu nó nằm giữa các đoạn.
+ */
 function collectBlocks(doc: Document, file: string, out: string[], anchorAt: Map<string, number>) {
   const body = doc.querySelector('body') ?? doc.documentElement;
-  const isLeafBlock = (el: Element) => el.matches(BLOCK_SELECTOR) && !el.querySelector(BLOCK_SELECTOR);
-  let current: Element | null = null; // khối lá đang nằm trong
-  let currentIndex = -1;
-  let sawBlock = false;
-
-  for (const el of body.querySelectorAll('*')) {
-    if (isLeafBlock(el)) {
-      sawBlock = true;
-      const text = (el.textContent ?? '').replace(/\s+/g, ' ').trim();
-      current = el;
-      currentIndex = text ? out.length : -1;
-      if (el.id) anchorAt.set(`${file}#${el.id}`, out.length);
-      if (text) out.push(text);
-      continue;
-    }
-    const id = el.id || (el.localName === 'a' ? el.getAttribute('name') ?? '' : '');
-    if (!id) continue;
-    // id nằm trong khối có chữ -> trỏ vào khối đó; nằm giữa các khối -> trỏ vào khối kế tiếp
-    const inside = current !== null && current.contains(el) && currentIndex >= 0;
-    anchorAt.set(`${file}#${id}`, inside ? currentIndex : out.length);
-  }
-  if (!sawBlock) {
-    const text = (body.textContent ?? '').replace(/\s+/g, ' ').trim();
+  let buf = '';
+  const flush = () => {
+    const text = buf.replace(/\s+/g, ' ').trim();
+    buf = '';
     if (text) out.push(text);
-  }
+  };
+  const walk = (node: Node) => {
+    for (const child of node.childNodes) {
+      if (child.nodeType === 3) { buf += child.nodeValue ?? ''; continue; }
+      if (child.nodeType !== 1) continue;
+      const el = child as Element;
+      const tag = el.localName.toLowerCase();
+      if (SKIP_TAGS.has(tag)) continue;
+      if (tag === 'br') { flush(); continue; }
+      const block = BLOCK_TAGS.has(tag);
+      if (block) flush();
+      const id = el.id || (tag === 'a' ? el.getAttribute('name') ?? '' : '');
+      if (id) anchorAt.set(`${file}#${id}`, out.length);
+      walk(el);
+      if (block) flush();
+    }
+  };
+  walk(body);
+  flush();
 }
 
 /** Tiêu đề thật của file (bỏ qua <title> chung chung kiểu "index"). */
