@@ -396,3 +396,20 @@ label.btn, label.add-tile { cursor: pointer; }
 .changelog > li:first-child { border-left-color: var(--accent); }
 .changelog-head { display: flex; justify-content: space-between; gap: 8px; }
 .changelog ul { margin: 4px 0 0; padding-left: 18px; font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+/* ---------- v0.9: tô sáng câu và khung dịch câu ---------- */
+.para .hl { background: var(--selected-bg); box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.para .tok.hl { border-radius: 0; }
+.trans-sheet { gap: 10px; }
+.word-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.word-chips .chip { min-height: 44px; font-size: 18px; }
+.sentence-reading { display: flex; flex-direction: column; gap: 4px; overflow-wrap: anywhere; }
+.sentence-reading .han { font: 500 18px/1.6 var(--font-han); }
+.trans-box { font-size: 16px; line-height: 1.6; padding: 12px 14px; border-radius: 12px; background: var(--surface-2); min-height: 3em; white-space: pre-wrap; }
+.trans-actions { display: flex; gap: 8px; align-items: center; }
+.trans-actions .btn { flex: 1; }
+.nav-btn { border: 1px solid var(--line-strong); font-size: 24px; line-height: 1; }
+.nav-btn:disabled { opacity: 0.35; }
+/* tra từ mở chồng lên khung dịch câu: nằm lớp trên, nền mờ để chạm ra ngoài là đóng tra từ */
+.trans-sheet ~ .backdrop { z-index: 30; background: rgba(0, 0, 0, 0.3); }
+.trans-sheet ~ .sheet { z-index: 31; }

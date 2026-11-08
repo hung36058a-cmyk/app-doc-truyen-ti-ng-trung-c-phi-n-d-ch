@@ -1,17 +1,26 @@
-// ui/components/TranslationSheet.tsx — Khung dịch (mở khi bấm giữ một đoạn).
-// Bước 1: chọn câu muốn dịch (câu dưới ngón tay được chọn sẵn), hoặc dịch cả đoạn.
-// Bước 2: chữ dịch hiện dần trong lúc AI trả lời; bản dịch được lưu cache nên mở lại là có ngay.
-// Đoạn chỉ có 1 câu thì bỏ qua bước 1.
+// ui/components/TranslationSheet.tsx — Khung dịch, mở khi BẤM GIỮ một chữ trong truyện.
+// Chế độ "câu": câu chứa chữ đó được tô sáng; khung hiện từng từ của câu (chạm để tra), pinyin và Hán Việt
+//   cả câu, và bản dịch câu (tự dịch ngay). Nút ‹ › chuyển sang câu trước / sau trong cùng đoạn.
+// Chế độ "đoạn": bấm "Dịch cả đoạn" -> chỉ hiện bản dịch cả đoạn, không tách từ.
+// Bản dịch được lưu cache nên mở lại là có ngay.
 
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { MeaningLang } from '@/core/types';
-import { splitSentences } from '@/services/sentence';
+import type { SentenceSpan } from '@/services/sentence';
 import { useServices } from '../context';
+
+export type TransMode = 'sentence' | 'paragraph';
 
 interface Props {
   paragraph: string;
   previous: string; // đoạn ngay trước, làm ngữ cảnh cho AI
-  initialOffset: number | null; // vị trí ký tự nơi bấm giữ
+  sentence: SentenceSpan;
+  sentenceIndex: number;
+  sentenceCount: number;
+  mode: TransMode;
+  onMode: (m: TransMode) => void;
+  onMove: (delta: -1 | 1) => void;
+  onPickWord: (word: string, offsetInParagraph: number) => void;
   lang: MeaningLang;
   onLang: (l: MeaningLang) => void;
   onClose: () => void;
@@ -19,99 +28,100 @@ interface Props {
 
 type Result = { status: 'loading'; partial: string } | { status: 'done'; text: string } | { status: 'error'; message: string };
 
-export function TranslationSheet({ paragraph, previous, initialOffset, lang, onLang, onClose }: Props) {
-  const { translations } = useServices();
-  const sentences = useMemo(() => splitSentences(paragraph), [paragraph]);
-  const single = sentences.length <= 1;
-
-  const [picked, setPicked] = useState<Set<number>>(() => {
-    const i = initialOffset === null ? -1 : sentences.findIndex((s) => initialOffset >= s.start && initialOffset < s.end);
-    return new Set(i >= 0 ? [i] : []);
-  });
-  // phần đang dịch: null = đang ở bước chọn câu
-  const [target, setTarget] = useState<{ text: string; context: string } | null>(() =>
-    single ? { text: paragraph, context: previous } : null,
-  );
+export function TranslationSheet(p: Props) {
+  const { translations, segmenter, dictionary } = useServices();
   const [result, setResult] = useState<Result>({ status: 'loading', partial: '' });
   const run = useRef(0);
 
+  // từ trong câu, kèm vị trí trong đoạn (để chạm từ là tra đúng chỗ)
+  const words = useMemo(() => {
+    let o = p.sentence.start;
+    return segmenter.segment(p.sentence.text).map((t) => {
+      const at = o;
+      o += [...t.text].length;
+      return { ...t, at };
+    });
+  }, [p.sentence, segmenter]);
+
+  const pinyin = words
+    .filter((t) => t.isWord)
+    .map((t) => dictionary.lookup(t.text)?.senses[0]?.pinyin.replace(/\s+/g, '') ?? t.text)
+    .join(' ');
+  const hanviet = words
+    .filter((t) => t.isWord)
+    .map((t) => dictionary.hanviet(t.text))
+    .join(' ');
+
+  const target =
+    p.mode === 'paragraph'
+      ? { text: p.paragraph, context: p.previous }
+      : { text: p.sentence.text, context: [...p.paragraph].slice(0, p.sentence.start).join('') || p.previous };
+
   useEffect(() => {
-    if (!target) return;
-    const id = ++run.current; // bỏ kết quả của lần dịch cũ khi đã đổi ngôn ngữ hoặc đổi câu
+    const id = ++run.current; // bỏ kết quả cũ khi đã đổi câu, đổi chế độ hoặc đổi ngôn ngữ
     setResult({ status: 'loading', partial: '' });
     translations
-      .translate(target.text, lang, target.context, (t) => id === run.current && setResult({ status: 'loading', partial: t }))
+      .translate(target.text, p.lang, target.context, (t) => id === run.current && setResult({ status: 'loading', partial: t }))
       .then((text) => id === run.current && setResult({ status: 'done', text }))
       .catch((e: Error) => id === run.current && setResult({ status: 'error', message: e.message }));
-  }, [target, lang]);
+  }, [target.text, p.lang]);
 
   useEffect(() => () => { run.current = -1; }, []);
 
-  const toggle = (i: number) => {
-    const next = new Set(picked);
-    next.has(i) ? next.delete(i) : next.add(i);
-    setPicked(next);
-  };
-
-  const translatePicked = () => {
-    const idx = [...picked].sort((a, b) => a - b);
-    const text = idx.map((i) => sentences[i].text).join('');
-    // ngữ cảnh: phần đứng trước câu đầu tiên được chọn trong đoạn; nếu chọn câu đầu thì dùng đoạn trước
-    const before = [...paragraph].slice(0, sentences[idx[0]].start).join('');
-    setTarget({ text, context: before || previous });
-  };
-
   return (
     <>
-      <button class="backdrop" aria-label="Đóng khung dịch" onClick={onClose} />
-      <section class="sheet" role="dialog" aria-label="Dịch">
+      <button class="backdrop" aria-label="Đóng khung dịch" onClick={p.onClose} />
+      <section class="sheet trans-sheet" role="dialog" aria-label={p.mode === 'paragraph' ? 'Dịch cả đoạn' : 'Dịch câu'}>
         <div class="grip" aria-hidden="true" />
         <div class="sheet-top">
-          <h2 class="sheet-heading">{target ? 'Bản dịch' : 'Chọn câu để dịch'}</h2>
+          <h2 class="sheet-heading">{p.mode === 'paragraph' ? 'Dịch cả đoạn' : `Câu ${p.sentenceIndex + 1} / ${p.sentenceCount}`}</h2>
           <div class="seg" role="group" aria-label="Ngôn ngữ bản dịch">
-            <button aria-pressed={lang === 'vi'} onClick={() => onLang('vi')}>VI</button>
-            <button aria-pressed={lang === 'en'} onClick={() => onLang('en')}>EN</button>
+            <button aria-pressed={p.lang === 'vi'} onClick={() => p.onLang('vi')}>VI</button>
+            <button aria-pressed={p.lang === 'en'} onClick={() => p.onLang('en')}>EN</button>
           </div>
         </div>
 
-        {!target ? (
+        {p.mode === 'sentence' ? (
           <>
-            <p class="meta">Chạm để chọn hoặc bỏ chọn câu. Có thể chọn nhiều câu.</p>
-            <div class="sentence-list" lang="zh-Hant">
-              {sentences.map((s, i) => (
-                <button key={i} class="sentence-chip" aria-pressed={picked.has(i)} onClick={() => toggle(i)}>
-                  {s.text}
-                </button>
+            <div class="word-chips" lang="zh-Hant" aria-label="Chạm một từ để tra">
+              {words.filter((t) => t.isWord).map((t, i) => (
+                <button key={i} class="chip" onClick={() => p.onPickWord(t.text, t.at)}>{t.text}</button>
               ))}
             </div>
-            <div class="row trans-actions">
-              <button class="btn" onClick={() => setTarget({ text: paragraph, context: previous })}>Dịch cả đoạn</button>
-              <button class="btn btn-primary" disabled={picked.size === 0} onClick={translatePicked}>
-                {picked.size ? `Dịch ${picked.size} câu` : 'Chọn câu'}
-              </button>
+            <div class="sentence-reading">
+              <div class="han" lang="zh-Hant">{p.sentence.text}</div>
+              <div class="meta">[{pinyin}]</div>
+              <div class="meta">[{hanviet}]</div>
             </div>
           </>
         ) : (
-          <>
-            <blockquote class="trans-source" lang="zh-Hant">{target.text}</blockquote>
-            <div class="trans-text" aria-live="polite">
-              {result.status === 'done' && result.text}
-              {result.status === 'loading' &&
-                (result.partial ? (
-                  <>{result.partial}<span class="caret" aria-hidden="true" /></>
-                ) : (
-                  <>
-                    <div class="skeleton" />
-                    <div class="skeleton" style={{ width: '50%', marginTop: '8px' }} />
-                  </>
-                ))}
-              {result.status === 'error' && <span class="meta">{result.message}</span>}
-            </div>
-            <div class="row trans-actions">
-              {!single && <button class="btn" onClick={() => setTarget(null)}>Chọn câu khác</button>}
-              {result.status === 'done' && <span class="meta trans-note">Bản dịch do AI tạo, đã lưu trên máy.</span>}
-            </div>
-          </>
+          <blockquote class="trans-source" lang="zh-Hant">{p.paragraph}</blockquote>
+        )}
+
+        <div class="trans-box" aria-live="polite">
+          {result.status === 'done' && result.text}
+          {result.status === 'loading' &&
+            (result.partial ? (
+              <>{result.partial}<span class="caret" aria-hidden="true" /></>
+            ) : (
+              <>
+                <div class="skeleton" />
+                <div class="skeleton" style={{ width: '50%', marginTop: '8px' }} />
+              </>
+            ))}
+          {result.status === 'error' && <span class="meta">{result.message}</span>}
+        </div>
+
+        {p.mode === 'sentence' ? (
+          <div class="trans-actions">
+            <button class="icon-btn nav-btn" aria-label="Câu trước" disabled={p.sentenceIndex === 0} onClick={() => p.onMove(-1)}>‹</button>
+            <button class="btn" onClick={() => p.onMode('paragraph')}>Dịch cả đoạn</button>
+            <button class="icon-btn nav-btn" aria-label="Câu sau" disabled={p.sentenceIndex >= p.sentenceCount - 1} onClick={() => p.onMove(1)}>›</button>
+          </div>
+        ) : (
+          <div class="trans-actions">
+            <button class="btn" onClick={() => p.onMode('sentence')}>Quay lại dịch câu</button>
+          </div>
         )}
       </section>
     </>

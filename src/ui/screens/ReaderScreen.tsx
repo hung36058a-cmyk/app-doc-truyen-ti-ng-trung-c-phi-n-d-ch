@@ -1,15 +1,16 @@
 // ui/screens/ReaderScreen.tsx — Trang đọc: hiện chương, chạm từ để tra, lưu từ, nhớ vị trí đọc, mục lục,
-// bấm giữ đoạn để dịch, chạm chỗ trống (hoặc nút Aa) để mở thanh chỉnh hiển thị.
+// bấm giữ một chữ để dịch câu chứa nó (trong khung có nút dịch cả đoạn), chạm chỗ trống (hoặc nút Aa)
+// để mở thanh chỉnh hiển thị.
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { AppSettings, Book, DictEntry, ReaderDisplay, VietMeaning } from '@/core/types';
-import { sentenceAt } from '@/services/sentence';
+import { sentenceAt, splitSentences } from '@/services/sentence';
 import { useServices } from '../context';
 import { Paragraph } from '../components/Paragraph';
 import { WordSheet } from '../components/WordSheet';
 import { TocSheet } from '../components/TocSheet';
 import { displayTitles, isTocPage } from '@/services/tocTitles';
-import { TranslationSheet } from '../components/TranslationSheet';
+import { TranslationSheet, type TransMode } from '../components/TranslationSheet';
 import { DisplayBar } from '../components/DisplayBar';
 import { useLongPress } from '../hooks/useLongPress';
 import { IconBack, IconList } from '../icons';
@@ -38,8 +39,8 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
   const [sel, setSel] = useState<Selection | null>(null);
   const [showToc, setShowToc] = useState(false);
   const [showDisplay, setShowDisplay] = useState(false);
-  // đoạn đang mở khung dịch + vị trí ký tự nơi ngón tay bấm giữ (để chọn sẵn câu đó)
-  const [trans, setTrans] = useState<{ para: number; offset: number | null } | null>(null);
+  // khung dịch đang mở: đoạn nào, câu thứ mấy, dịch câu hay cả đoạn
+  const [trans, setTrans] = useState<{ para: number; sentence: number; mode: TransMode } | null>(null);
   const body = useRef<HTMLDivElement>(null);
   const restoreTo = useRef<number | null>(null);
 
@@ -129,18 +130,20 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
     setSaved(next);
   };
 
-  // bấm giữ một đoạn -> dịch nguyên đoạn
-  const longPress = useLongPress<{ para: number; offset: number | null }>(
+  // bấm giữ một chữ -> dịch câu chứa chữ đó
+  const longPress = useLongPress<{ para: number; offset: number }>(
     (target) => {
       const p = target.closest<HTMLElement>('[data-p]');
-      if (!p) return null;
-      const tok = target.closest<HTMLElement>('[data-o]');
-      return { para: Number(p.dataset.p), offset: tok ? Number(tok.dataset.o) : null };
+      const at = target.closest<HTMLElement>('[data-o]');
+      return p && at ? { para: Number(p.dataset.p), offset: Number(at.dataset.o) } : null;
     },
-    (hit) => {
+    ({ para, offset }) => {
+      if (!book) return;
+      const spans = splitSentences(book.chapters[chapter].paragraphs[para]);
+      const idx = Math.max(0, spans.findIndex((x) => offset >= x.start && offset < x.end));
       setSel(null);
       setShowDisplay(false);
-      setTrans(hit);
+      setTrans({ para, sentence: idx, mode: 'sentence' });
     },
   );
 
@@ -161,10 +164,22 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
     '--reader-margin': `${d.margin}px`,
   };
 
+  /** Chỉ số token (trong đoạn) bắt đầu tại vị trí ký tự `at`, để tô đúng từ khi tra từ khung dịch câu. */
+  const tokenAt = (text: string, at: number) => {
+    let o = 0;
+    return segmenter.segment(text).findIndex((t) => {
+      const hit = o === at;
+      o += [...t.text].length;
+      return hit;
+    });
+  };
+
   const ch = book?.chapters[chapter];
   const titles = book ? displayTitles(book.chapters.map((c) => c.title)) : [];
   const chTitle = titles[chapter] ?? ch?.title ?? '';
   const sheetOpen = sel !== null || trans !== null || showDisplay;
+  const transText = trans && ch ? ch.paragraphs[trans.para] : '';
+  const transSpans = useMemo(() => splitSentences(transText), [transText]);
 
   return (
     <div class="reader" data-paper={d.paper} data-font={d.font} style={displayVars}>
@@ -214,7 +229,8 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
                   segmenter={segmenter}
                   saved={saved}
                   selectedToken={sel?.para === i ? sel.token : null}
-                  highlighted={trans?.para === i}
+                  hlStart={trans?.para === i ? (trans.mode === 'paragraph' ? 0 : transSpans[trans.sentence]?.start ?? -1) : -1}
+                  hlEnd={trans?.para === i ? (trans.mode === 'paragraph' ? Infinity : transSpans[trans.sentence]?.end ?? -1) : -1}
                   onTap={onTap}
                 />
               ))}
@@ -232,6 +248,24 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
         )}
       </div>
 
+
+      {trans !== null && ch && transSpans[trans.sentence] && (
+        <TranslationSheet
+          paragraph={transText}
+          previous={ch.paragraphs[trans.para - 1] ?? ''}
+          sentence={transSpans[trans.sentence]}
+          sentenceIndex={trans.sentence}
+          sentenceCount={transSpans.length}
+          mode={trans.mode}
+          onMode={(mode) => setTrans({ ...trans, mode })}
+          onMove={(d) => setTrans({ ...trans, sentence: trans.sentence + d })}
+          onPickWord={(word, at) => setSel({ para: trans.para, token: tokenAt(transText, at), word, sentence: transSpans[trans.sentence].text })}
+          lang={settings.meaningLang}
+          onLang={(l) => onSettings({ meaningLang: l })}
+          onClose={() => setTrans(null)}
+        />
+      )}
+
       {sel && (
         <WordSheet
           key={`${sel.word}|${sel.sentence}`}
@@ -244,18 +278,6 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
           onUnsave={() => unsaveWord(sel.word)}
           onPick={(w) => setSel({ ...sel, word: w })}
           onClose={() => setSel(null)}
-        />
-      )}
-
-      {trans !== null && ch && (
-        <TranslationSheet
-          key={`${chapter}-${trans.para}-${trans.offset}`}
-          paragraph={ch.paragraphs[trans.para]}
-          previous={ch.paragraphs[trans.para - 1] ?? ''}
-          initialOffset={trans.offset}
-          lang={settings.meaningLang}
-          onLang={(l) => onSettings({ meaningLang: l })}
-          onClose={() => setTrans(null)}
         />
       )}
 

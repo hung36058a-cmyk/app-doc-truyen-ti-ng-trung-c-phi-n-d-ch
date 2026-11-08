@@ -9,6 +9,15 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '0.9',
+    date: '08/11/2026',
+    notes: [
+      'Bấm giữ một chữ: tô sáng đúng câu đó và dịch ngay cả câu',
+      'Khung dịch câu: từng từ trong câu (chạm để tra), pinyin và Hán Việt cả câu, nút câu trước / câu sau',
+      'Nút "Dịch cả đoạn" trong khung dịch câu (thay cho chọn nhiều câu)',
+    ],
+  },
+  {
     version: '0.8',
     date: '08/11/2026',
     notes: [
