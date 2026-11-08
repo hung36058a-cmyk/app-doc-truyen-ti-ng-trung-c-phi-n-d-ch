@@ -17,7 +17,7 @@ export function SettingsScreen({ settings, onChange, dictState }: Props) {
 
   useEffect(() => {
     ai.active().then((p) => setAiLabel(p?.label ?? null));
-  }, [settings.anthropicApiKey]);
+  }, [settings.anthropicApiKey, settings.geminiApiKey]);
 
   return (
     <main class="screen">
@@ -64,7 +64,7 @@ export function SettingsScreen({ settings, onChange, dictState }: Props) {
         <div class="setting">
           <span class="setting-label">
             Đang dùng
-            <small>Trên claude.ai, app dùng Claude của tài khoản bạn, không cần key.</small>
+            <small>Trên claude.ai, app dùng Claude của tài khoản bạn. Ở app riêng: dùng key bên dưới (nhập cả hai thì ưu tiên Claude).</small>
           </span>
           <span>
             <span class={`status-dot${aiLabel ? ' ok' : ''}`} />
@@ -72,9 +72,23 @@ export function SettingsScreen({ settings, onChange, dictState }: Props) {
           </span>
         </div>
         <div class="setting">
+          <label class="setting-label" for="set-gemini">
+            Gemini API key
+            <small>Có gói miễn phí. Lấy key ở aistudio.google.com → Get API key. Lưu trên máy này.</small>
+          </label>
+          <input
+            id="set-gemini"
+            type="password"
+            autocomplete="off"
+            placeholder="AIza…"
+            value={settings.geminiApiKey}
+            onChange={(e) => onChange({ geminiApiKey: e.currentTarget.value.trim() })}
+          />
+        </div>
+        <div class="setting">
           <label class="setting-label" for="set-key">
             Claude API key
-            <small>Chỉ cần khi chạy app ở trang riêng (ngoài claude.ai). Lưu trên máy này.</small>
+            <small>Trả phí theo lượt dùng (platform.claude.com). Lưu trên máy này.</small>
           </label>
           <input
             id="set-key"

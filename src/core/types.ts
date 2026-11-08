@@ -118,6 +118,7 @@ export interface AppSettings {
   meaningLang: MeaningLang;
   theme: ThemeMode;
   anthropicApiKey: string; // chỉ dùng khi app chạy ngoài claude.ai
+  geminiApiKey: string; // chỉ dùng khi app chạy ngoài claude.ai
   reader: ReaderDisplay;
   ankiDeck: string; // tên deck khi xuất thẻ
 }

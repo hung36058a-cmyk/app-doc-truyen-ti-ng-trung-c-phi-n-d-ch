@@ -8,6 +8,7 @@ import type { Segmenter } from '@/modules/segmenter/Segmenter';
 import { ClaudeArtifactProvider } from '@/modules/ai/ClaudeArtifactProvider';
 import { AnthropicApiProvider } from '@/modules/ai/AnthropicApiProvider';
 import { ProviderChain } from '@/modules/ai/ProviderChain';
+import { GeminiProvider } from '@/modules/ai/GeminiProvider';
 import { createDexieStorage } from '@/modules/storage/DexieStorage';
 import type { Storage } from '@/modules/storage/Storage';
 import { MeaningService } from './MeaningService';
@@ -32,10 +33,11 @@ export function createServices(): Services {
     hanvietUrl: './data/hanviet.tsv',
   });
   const segmenter = new MaxMatchSegmenter(dictionary);
-  // Thứ tự ưu tiên: Claude trên claude.ai trước, rồi tới API key riêng
+  // Thứ tự ưu tiên: Claude trên claude.ai trước, rồi tới API key riêng (Claude, rồi Gemini)
   const ai = new ProviderChain([
     new ClaudeArtifactProvider(),
     new AnthropicApiProvider(() => storage.settings.load().anthropicApiKey),
+    new GeminiProvider(() => storage.settings.load().geminiApiKey),
   ]);
   const meanings = new MeaningService(dictionary, ai, storage.meanings);
   const translations = new TranslationService(ai, storage.translations);

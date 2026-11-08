@@ -20,7 +20,7 @@ export class ProviderChain implements AiProvider {
 
   async complete(prompt: string, opts?: CompleteOptions): Promise<string> {
     const p = await this.active();
-    if (!p) throw new AiUnavailableError('Chưa có AI: mở app trên claude.ai hoặc nhập API key trong Cài đặt.');
+    if (!p) throw new AiUnavailableError('Chưa có AI: nhập Gemini hoặc Claude API key trong Cài đặt.');
     return p.complete(prompt, opts);
   }
 }
