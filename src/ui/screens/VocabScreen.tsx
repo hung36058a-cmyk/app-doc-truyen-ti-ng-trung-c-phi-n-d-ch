@@ -81,6 +81,16 @@ export function VocabScreen({ settings }: { settings: AppSettings }) {
     refresh();
   };
 
+  /** Đưa cả lần xuất gần nhất về nhóm Chưa xuất (ví dụ lần import vào Anki bị lỗi). */
+  const lastBatchAt = Math.max(0, ...(words ?? []).filter((w) => w.exported).map((w) => w.exportedAt ?? 0));
+  const lastBatch = (words ?? []).filter((w) => w.exported && (w.exportedAt ?? 0) === lastBatchAt);
+  const moveBackLastBatch = async () => {
+    for (const w of lastBatch) await storage.words.save({ ...w, exported: false });
+    setGroup('pending');
+    setExp({ status: 'idle' });
+    refresh();
+  };
+
   const moveBack = async (w: SavedWord) => {
     await storage.words.save({ ...w, exported: false });
     setOpen(null);
@@ -147,6 +157,12 @@ export function VocabScreen({ settings }: { settings: AppSettings }) {
         </div>
       )}
       {exp.status === 'error' && <p class="notice notice-error" role="alert">{exp.message}</p>}
+      {group === 'exported' && lastBatch.length > 0 && (
+        <div class="notice row-notice">
+          <span>Lần xuất gần nhất: {lastBatch.length} từ.</span>
+          <button class="btn" onClick={moveBackLastBatch}>Đưa về Chưa xuất để xuất lại</button>
+        </div>
+      )}
 
       {words === null ? (
         <p class="loading">Đang tải…</p>
