@@ -106,6 +106,13 @@ export function SettingsScreen({ settings, onChange, dictState }: Props) {
         </div>
         <div class="setting">
           <span class="setting-label">
+            Phiên bản app
+            <small>Thời điểm bản app này được tạo. Chưa khớp bản mới thì tắt hẳn app, mở lại 2 lần.</small>
+          </span>
+          <span class="meta">{__BUILD__}</span>
+        </div>
+        <div class="setting">
+          <span class="setting-label">
             Nơi lưu
             <small>Truyện, vị trí đọc và từ đã lưu nằm trong trình duyệt của máy này.</small>
           </span>
