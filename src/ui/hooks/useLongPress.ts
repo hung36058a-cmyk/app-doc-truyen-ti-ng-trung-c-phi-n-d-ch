@@ -35,7 +35,8 @@ export function useLongPress<T>(
       },
       onPointerUp: clear,
       onPointerCancel: clear,
-      onContextMenu: (e: Event) => e.preventDefault(), // chặn menu chép/chia sẻ của Android khi bấm giữ
+      // chặn menu chép/chia sẻ của Android khi bấm giữ chữ trong truyện (chỗ khác, vd tiêu đề, vẫn bôi đen được)
+      onContextMenu: (e: Event) => { if (pick(e.target as HTMLElement) !== null) e.preventDefault(); },
     },
     /** Gọi trong onClick: trả true nếu click này là phần đuôi của một lần bấm giữ (nên bỏ qua). */
     consumeClick: () => {

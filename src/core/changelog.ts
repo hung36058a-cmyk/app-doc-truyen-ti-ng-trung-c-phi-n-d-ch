@@ -9,6 +9,16 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.1',
+    date: '08/11/2026',
+    notes: [
+      'Đầu mỗi chương có thêm nút Chương trước / Chương sau (cuối chương vẫn giữ)',
+      'Tiêu đề chương bấm giữ để bôi đen, chép được',
+      'Thanh tiến độ sát mép dưới trang đọc giống Moon Reader: pin + giờ, "Chương X (trang a/b)", % đã đọc cả cuốn',
+      'Số phiên bản chỉ hiện ở các màn hình ngoài, không còn hiện trong trang đọc',
+    ],
+  },
+  {
     version: '1.0',
     date: '08/11/2026',
     notes: [

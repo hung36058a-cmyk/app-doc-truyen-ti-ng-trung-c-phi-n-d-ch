@@ -1,6 +1,6 @@
 // ui/screens/ReaderScreen.tsx — Trang đọc: hiện chương, chạm từ để tra, lưu từ, nhớ vị trí đọc, mục lục,
 // bấm giữ một chữ để dịch câu chứa nó (trong khung có nút dịch cả đoạn), chạm chỗ trống (hoặc nút Aa)
-// để mở thanh chỉnh hiển thị.
+// để mở thanh chỉnh hiển thị. Đầu và cuối chương có nút chương trước/sau; mép dưới có thanh tiến độ đọc.
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { AppSettings, Book, DictEntry, ReaderDisplay, VietMeaning } from '@/core/types';
@@ -13,6 +13,9 @@ import { displayTitles, isTocPage } from '@/services/tocTitles';
 import { TranslationSheet, type TransMode } from '../components/TranslationSheet';
 import { DisplayBar } from '../components/DisplayBar';
 import { useLongPress } from '../hooks/useLongPress';
+import { ChapterNav } from '../components/ChapterNav';
+import { ReaderStatus } from '../components/ReaderStatus';
+import { bookPercent, chapterLengths, chapterPosition, type ChapterPosition } from '@/services/readingProgress';
 import { IconBack, IconList } from '../icons';
 import type { DictState } from '../App';
 
@@ -43,6 +46,7 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
   const [trans, setTrans] = useState<{ para: number; sentence: number; mode: TransMode } | null>(null);
   const body = useRef<HTMLDivElement>(null);
   const restoreTo = useRef<number | null>(null);
+  const [pos, setPos] = useState<ChapterPosition>({ page: 1, pages: 1, fraction: 0 });
 
   // tải truyện, vị trí đọc và từ đã lưu
   useEffect(() => {
@@ -65,13 +69,34 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
   useLayoutEffect(() => {
     if (!book || dictState !== 'ready' || restoreTo.current === null || !body.current) return;
     const target = body.current.querySelector<HTMLElement>(`[data-p="${restoreTo.current}"]`);
-    body.current.scrollTop = target ? target.offsetTop - 16 : 0;
+    // đoạn đầu chương: cuộn hẳn lên đỉnh để thấy nút chương trước/sau và tiêu đề
+    body.current.scrollTop = target && restoreTo.current > 0 ? target.offsetTop - 16 : 0;
     restoreTo.current = null;
   }, [book, chapter, dictState]);
+
+  // thanh tiến độ: tính lại trang/phần trăm khi cuộn, đổi chương, đổi cỡ chữ hay xoay màn hình
+  const posFrame = useRef<number>();
+  const updatePos = () => {
+    window.cancelAnimationFrame(posFrame.current!);
+    posFrame.current = window.requestAnimationFrame(() => {
+      const el = body.current;
+      if (!el) return;
+      // khi khung tra từ/dịch mở, chương được đệm thêm ở cuối: không tính phần đệm đó
+      const extra = el.classList.contains('sheet-open') ? Math.max(0, parseFloat(getComputedStyle(el).paddingBottom) - 40) : 0;
+      setPos(chapterPosition(el, extra));
+    });
+  };
+  useEffect(() => {
+    updatePos();
+    window.addEventListener('resize', updatePos);
+    return () => window.removeEventListener('resize', updatePos);
+  }, [book, chapter, dictState, settings.reader]);
+  const lengths = useMemo(() => (book ? chapterLengths(book.chapters) : []), [book]);
 
   // lưu vị trí: đoạn đầu tiên còn thấy trên màn hình
   const saveTimer = useRef<number>();
   const onScroll = () => {
+    updatePos();
     window.clearTimeout(saveTimer.current);
     saveTimer.current = window.setTimeout(() => {
       const el = body.current;
@@ -150,7 +175,7 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
   // chạm vào chỗ không phải từ (khoảng trống, dấu câu) -> bật/tắt thanh chỉnh hiển thị
   const onBodyClick = (e: MouseEvent) => {
     const t = e.target as HTMLElement;
-    if (t.closest('[data-t], button, a')) return;
+    if (t.closest('[data-t], button, a, .chapter-title')) return;
     setSel(null);
     setShowDisplay((v) => !v);
   };
@@ -209,6 +234,8 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
         ) : (
           ch && (
             <article lang="zh-Hant">
+              <ChapterNav place="top" chapter={chapter} count={book.chapters.length} onGo={goChapter} />
+              {/* tiêu đề cho phép bôi đen để chép */}
               <h2 class="chapter-title">{chTitle}</h2>
               {isTocPage(ch.title) ? (
                 // trang mục lục của file EPUB: thay bằng mục lục bấm được
@@ -234,12 +261,7 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
                   onTap={onTap}
                 />
               ))}
-              <nav class="chapter-nav" aria-label="Chuyển chương">
-                <button class="btn" disabled={chapter === 0} onClick={() => goChapter(chapter - 1)}>Chương trước</button>
-                <button class="btn btn-primary" disabled={chapter >= book.chapters.length - 1} onClick={() => goChapter(chapter + 1)}>
-                  Chương sau
-                </button>
-              </nav>
+              <ChapterNav place="bottom" chapter={chapter} count={book.chapters.length} onGo={goChapter} />
               <p class="meta" style={{ textAlign: 'center', marginTop: '14px' }}>
                 Chương {chapter + 1} / {book.chapters.length}
               </p>
@@ -248,6 +270,14 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
         )}
       </div>
 
+      {book && ch && (
+        <ReaderStatus
+          chapterNo={chapter + 1}
+          page={pos.page}
+          pages={pos.pages}
+          percent={bookPercent(lengths, chapter, pos.fraction)}
+        />
+      )}
 
       {trans !== null && ch && transSpans[trans.sentence] && (
         <TranslationSheet

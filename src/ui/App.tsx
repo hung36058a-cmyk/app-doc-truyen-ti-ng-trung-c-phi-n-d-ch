@@ -68,7 +68,8 @@ export function App() {
           <BottomNav current={tab} hrefs={TAB_HASH} />
         </div>
       )}
-      <span class={`version-tag${readingBookId ? ' in-reader' : ''}`} aria-hidden="true">v{APP_VERSION}</span>
+      {/* số phiên bản chỉ hiện ở các màn hình ngoài, không hiện trong trang đọc */}
+      {!readingBookId && <span class="version-tag" aria-hidden="true">v{APP_VERSION}</span>}
     </ServicesContext.Provider>
   );
 }
