@@ -25,7 +25,7 @@ export class CardService {
     const dictHv = w.hanviet || this.dict.hanviet(w.word);
     const text = await this.ai.complete(
       cardContentPrompt({ word: w.word, sentence: w.sentence, pinyin: dictPinyin, english: w.english, hanviet: dictHv }),
-      { quality: 'best' },
+      { quality: 'quick' }, // thẻ luôn dùng Gemini Flash; Pro chỉ dành cho "Dịch nâng cao"
     );
     const r = extractJson<Partial<Record<keyof CardContent, unknown>>>(text);
     const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '');

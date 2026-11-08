@@ -1,9 +1,8 @@
 // modules/ai/ProviderChain.ts — Dùng các nhà cung cấp AI theo thứ tự ưu tiên.
 // Nhà cung cấp đứng trước báo lỗi KEY (hết lượt, hết tiền, key sai) thì tạm bỏ qua nó một thời gian
-// và thử nhà cung cấp kế tiếp. Chế độ Tiết kiệm ép mọi yêu cầu dùng model rẻ.
+// và thử nhà cung cấp kế tiếp. Mức model (quick/best) do từng dịch vụ tự chọn cho mỗi yêu cầu.
 
 import { AiKeyError, AiUnavailableError, type AiProvider, type CompleteOptions } from './AiProvider';
-import type { AiMode } from '@/core/types';
 
 export interface ChainEntry {
   id: string; // khóa ổn định để nhớ thời gian tạm nghỉ
@@ -15,7 +14,6 @@ export class ProviderChain implements AiProvider {
 
   constructor(
     private getEntries: () => ChainEntry[],
-    private getMode: () => AiMode,
   ) {}
 
   get label() {
@@ -45,7 +43,6 @@ export class ProviderChain implements AiProvider {
   }
 
   async complete(prompt: string, opts: CompleteOptions = {}): Promise<string> {
-    const o = this.getMode() === 'save' ? { ...opts, quality: 'quick' as const } : opts;
     const failures: string[] = [];
     let tried = 0;
     for (const e of this.getEntries()) {
@@ -56,10 +53,11 @@ export class ProviderChain implements AiProvider {
       if (!(await e.provider.isAvailable())) continue;
       tried++;
       try {
-        return await e.provider.complete(prompt, o);
+        return await e.provider.complete(prompt, opts);
       } catch (err) {
         if (!(err instanceof AiKeyError)) throw err;
-        this.resting.set(e.id, { until: Date.now() + err.cooldownMs, reason: err.message });
+        // cooldownMs = 0: chỉ bỏ qua key này cho yêu cầu hiện tại, không cho nghỉ
+        if (err.cooldownMs > 0) this.resting.set(e.id, { until: Date.now() + err.cooldownMs, reason: err.message });
         failures.push(`${e.provider.label}: ${err.message}`);
       }
     }

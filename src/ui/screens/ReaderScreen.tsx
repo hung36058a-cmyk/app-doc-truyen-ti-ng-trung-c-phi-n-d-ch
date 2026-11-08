@@ -333,6 +333,8 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
           onPickWord={(word, at) => setSel({ para: trans.para, token: tokenAt(transText, at), word, sentence: transSpans[trans.sentence].text, expanded: true })}
           lang={settings.meaningLang}
           onLang={(l) => onSettings({ meaningLang: l })}
+          aiMode={settings.aiMode}
+          onAiMode={(m) => onSettings({ aiMode: m })}
           onClose={() => setTrans(null)}
         />
       )}

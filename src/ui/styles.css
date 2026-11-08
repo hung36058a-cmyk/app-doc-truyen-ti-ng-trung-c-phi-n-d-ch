@@ -571,3 +571,10 @@ label.btn, label.add-tile { cursor: pointer; }
 }
 .book-group:first-child { margin-top: 0; }
 .book-group-count { font: 600 12px var(--font-ui); color: var(--muted); background: var(--surface-2); padding: 3px 9px; border-radius: 999px; }
+
+/* ---------- v2.1: chọn mức dịch ngay trong khung dịch ---------- */
+.ai-tier { display: grid; grid-template-columns: 1fr 1fr; border-radius: 12px; }
+.ai-tier button { border-radius: 9px; height: 38px; font-size: 14px; }
+.ai-tier button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.trans-box { position: relative; }
+.trans-model { display: block; margin-top: 8px; font: 500 11px var(--font-ui); color: var(--faint); text-align: right; white-space: normal; }

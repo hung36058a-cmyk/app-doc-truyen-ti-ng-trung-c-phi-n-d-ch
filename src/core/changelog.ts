@@ -9,6 +9,16 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '2.1',
+    date: '09/11/2026',
+    notes: [
+      'Khung dịch câu/đoạn có nút "Dịch tự động" / "Dịch nâng cao" ngay trong khung, không cần vào Cài đặt',
+      'Dịch tự động, tra từ và tạo thẻ dùng Gemini Flash (thay cho Flash-Lite); Dịch nâng cao dùng Gemini Pro',
+      'Mỗi mức dịch có bộ nhớ riêng: chuyển sang Nâng cao là dịch lại, chuyển về Tự động vẫn còn bản cũ',
+      'Key miễn phí hết lượt Pro không bị tạm nghỉ, vẫn dùng tiếp cho Dịch tự động',
+    ],
+  },
+  {
     version: '2.0',
     date: '09/11/2026',
     notes: [

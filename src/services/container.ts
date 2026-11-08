@@ -50,7 +50,6 @@ export function createServices(): Services {
   };
   const ai = new ProviderChain(
     () => [{ id: 'claude-ai', provider: artifactClaude }, ...storage.settings.load().aiKeys.map(keyEntry)],
-    () => storage.settings.load().aiMode,
   );
   const meanings = new MeaningService(dictionary, ai, storage.meanings);
   const translations = new TranslationService(ai, storage.translations);

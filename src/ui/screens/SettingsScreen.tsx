@@ -65,17 +65,12 @@ export function SettingsScreen({ settings, onChange, dictState }: Props) {
       <div class="settings-group">
         <div class="setting">
           <span class="setting-label">
-            Chế độ
+            Model
             <small>
-              {settings.aiMode === 'save'
-                ? 'Tiết kiệm: mọi việc dùng model rẻ (Gemini Flash-Lite), rẻ hơn khoảng 6 lần.'
-                : 'Chất lượng cao: dịch đoạn và tạo thẻ dùng model tốt hơn (Gemini Flash), tốn hơn.'}
+              Tra từ, tạo thẻ và "Dịch tự động" dùng Gemini Flash. "Dịch nâng cao" dùng Gemini Pro (cần key trả phí) —
+              chuyển ngay trong khung dịch khi bấm giữ một câu.
             </small>
           </span>
-          <div class="seg" role="group" aria-label="Chế độ AI">
-            <button aria-pressed={settings.aiMode === 'save'} onClick={() => onChange({ aiMode: 'save' })}>Tiết kiệm</button>
-            <button aria-pressed={settings.aiMode === 'quality'} onClick={() => onChange({ aiMode: 'quality' })}>Chất lượng cao</button>
-          </div>
         </div>
         <div class="setting">
           <span class="setting-label">

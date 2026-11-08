@@ -2,10 +2,11 @@
 // Chế độ "câu": câu chứa chữ đó được tô sáng; khung hiện từng từ của câu (chạm để tra), pinyin và Hán Việt
 //   cả câu, và bản dịch câu (tự dịch ngay). Nút ‹ › chuyển sang câu trước / sau trong cùng đoạn.
 // Chế độ "đoạn": bấm "Dịch cả đoạn" -> chỉ hiện bản dịch cả đoạn, không tách từ.
-// Bản dịch được lưu cache nên mở lại là có ngay.
+// Hàng "Dịch tự động / Dịch nâng cao" đổi model ngay trong khung (nhớ cho lần sau): tự động = Gemini Flash,
+// nâng cao = Gemini Pro. Bản dịch được lưu cache riêng cho từng mức nên mở lại là có ngay.
 
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
-import type { MeaningLang } from '@/core/types';
+import type { AiMode, MeaningLang } from '@/core/types';
 import type { SentenceSpan } from '@/services/sentence';
 import { useServices } from '../context';
 
@@ -23,6 +24,8 @@ interface Props {
   onPickWord: (word: string, offsetInParagraph: number) => void;
   lang: MeaningLang;
   onLang: (l: MeaningLang) => void;
+  aiMode: AiMode; // 'save' = Dịch tự động, 'quality' = Dịch nâng cao
+  onAiMode: (m: AiMode) => void;
   onClose: () => void;
 }
 
@@ -66,12 +69,12 @@ export function TranslationSheet(p: Props) {
     const fail = (e: Error) => live() && setResult({ status: 'error', message: e.message });
     if (p.mode === 'paragraph') {
       translations
-        .translate(target.text, p.lang, target.context, (t) => live() && setResult({ status: 'loading', partial: t }))
+        .translate(target.text, p.lang, target.context, p.aiMode, (t) => live() && setResult({ status: 'loading', partial: t }))
         .then((text) => live() && setResult({ status: 'done', text }))
         .catch(fail);
     } else {
       translations
-        .translateSentence(target.text, p.lang, target.context, (r) => {
+        .translateSentence(target.text, p.lang, target.context, p.aiMode, (r) => {
           if (!live()) return;
           if (r.hanviet) setAiHanviet(r.hanviet);
           setResult({ status: 'loading', partial: r.translation });
@@ -83,7 +86,7 @@ export function TranslationSheet(p: Props) {
         })
         .catch(fail);
     }
-  }, [target.text, p.lang, p.mode]);
+  }, [target.text, p.lang, p.mode, p.aiMode]);
 
   useEffect(() => () => { run.current = -1; }, []);
 
@@ -98,6 +101,11 @@ export function TranslationSheet(p: Props) {
             <button aria-pressed={p.lang === 'vi'} onClick={() => p.onLang('vi')}>VI</button>
             <button aria-pressed={p.lang === 'en'} onClick={() => p.onLang('en')}>EN</button>
           </div>
+        </div>
+
+        <div class="seg ai-tier" role="group" aria-label="Mức dịch">
+          <button aria-pressed={p.aiMode === 'save'} onClick={() => p.onAiMode('save')}>Dịch tự động</button>
+          <button aria-pressed={p.aiMode === 'quality'} onClick={() => p.onAiMode('quality')}>Dịch nâng cao</button>
         </div>
 
         {p.mode === 'sentence' ? (
@@ -131,6 +139,7 @@ export function TranslationSheet(p: Props) {
               </>
             ))}
           {result.status === 'error' && <span class="meta">{result.message}</span>}
+          <span class="trans-model">{p.aiMode === 'quality' ? 'Nâng cao · Gemini Pro' : 'Tự động · Gemini Flash'}</span>
         </div>
 
         {p.mode === 'sentence' ? (

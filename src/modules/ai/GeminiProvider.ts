@@ -6,9 +6,10 @@
 import { AiKeyError, type AiProvider, type CompleteOptions } from './AiProvider';
 
 const MODELS: Record<'quick' | 'best', string[]> = {
-  // quick: model rẻ (tra từ; chế độ Tiết kiệm dùng cho mọi việc) · best: chế độ Chất lượng cao
-  quick: ['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-2.5-flash-lite'],
-  best: ['gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite'],
+  // quick: Gemini Flash — tra từ, tạo thẻ, "Dịch tự động" · best: Gemini Pro — "Dịch nâng cao"
+  // (tên model theo trang ai.google.dev/gemini-api/docs/models, 9/11/2026)
+  quick: ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-2.5-flash'],
+  best: ['gemini-3.1-pro-preview', 'gemini-2.5-pro'],
 };
 const ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
 
@@ -46,6 +47,9 @@ export class GeminiProvider implements AiProvider {
       }
       const body = await res.text().catch(() => '');
       if (res.status === 402) throw new AiKeyError('hết tiền nạp trước (402)', 30 * 60_000);
+      // Pro thường không có lượt miễn phí: chuyển sang key kế tiếp cho lần này, KHÔNG cho key nghỉ
+      // (nếu nghỉ thì key miễn phí cũng thôi dùng cho Dịch tự động)
+      if (res.status === 429 && quality === 'best') throw new AiKeyError('Dịch nâng cao (Gemini Pro) hết lượt hoặc cần key trả phí (429)', 0);
       if (res.status === 429) throw new AiKeyError('hết lượt (429)');
       if (/API_KEY_INVALID|API key not valid/i.test(body)) throw new AiKeyError('key không đúng', 24 * 3600_000);
       if (res.status === 403 && !/not found|not supported|permission/i.test(body)) throw new AiKeyError('Google từ chối key (403)');

@@ -125,7 +125,7 @@ export interface AiKey {
   key: string;
 }
 
-/** save = mọi việc dùng model rẻ; quality = dịch đoạn và tạo thẻ dùng model tốt hơn. */
+/** Mức dịch câu/đoạn, đổi ngay trong khung dịch: save = Dịch tự động (Gemini Flash), quality = Dịch nâng cao (Gemini Pro). */
 export type AiMode = 'save' | 'quality';
 
 export interface AppSettings {
