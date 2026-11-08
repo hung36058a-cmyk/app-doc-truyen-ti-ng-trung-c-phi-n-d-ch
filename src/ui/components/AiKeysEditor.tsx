@@ -29,7 +29,8 @@ export function AiKeysEditor({ keys, onChange, restingReason }: Props) {
   const add = (e: Event) => {
     e.preventDefault();
     const k = key.trim();
-    if (provider === 'gemini' && !k.startsWith('AIza')) return setError('Key Gemini thường bắt đầu bằng "AIza".');
+    // Key Gemini có nhiều dạng (AIza…, AQ.…) nên chỉ kiểm tra độ dài
+    if (provider === 'gemini' && (k.length < 20 || /\s/.test(k))) return setError('Key Gemini có vẻ chưa đủ hoặc có dấu cách. Copy lại toàn bộ key.');
     if (provider === 'claude' && !k.startsWith('sk-ant-')) return setError('Key Claude bắt đầu bằng "sk-ant-".');
     if (keys.some((x) => x.key === k)) return setError('Key này đã có trong danh sách.');
     onChange([...keys, { id: newId(), provider, label: label.trim() || (provider === 'gemini' ? 'Gemini' : 'Claude'), key: k }]);
@@ -86,7 +87,7 @@ export function AiKeysEditor({ keys, onChange, restingReason }: Props) {
         </div>
         <div class="field">
           <label for="key-value">API key</label>
-          <input id="key-value" type="password" autocomplete="off" placeholder={provider === 'gemini' ? 'AIza…' : 'sk-ant-…'} value={key} onInput={(e) => setKey(e.currentTarget.value)} />
+          <input id="key-value" type="password" autocomplete="off" placeholder={provider === 'gemini' ? 'AIza… hoặc AQ.…' : 'sk-ant-…'} value={key} onInput={(e) => setKey(e.currentTarget.value)} />
         </div>
         {error && <p class="notice notice-error" role="alert">{error}</p>}
         <button type="submit" class="btn btn-primary" disabled={!key.trim()}>Thêm key vào cuối danh sách</button>
