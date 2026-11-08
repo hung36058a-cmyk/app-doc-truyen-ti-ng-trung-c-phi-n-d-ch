@@ -2,7 +2,7 @@
 // Dùng chung cho popup nhỏ (WordPopover) và bảng đầy đủ (WordSheet), để hai nơi luôn hiện cùng một nội dung.
 
 import { useEffect, useRef, useState } from 'preact/hooks';
-import type { DictEntry, MeaningLang, VietMeaning } from '@/core/types';
+import type { AiMode, DictEntry, MeaningLang, VietMeaning } from '@/core/types';
 import { mergeHanviet } from '@/services/MeaningService';
 import { useServices } from '../context';
 
@@ -26,29 +26,34 @@ export interface WordLookup {
  * Lấy nghĩa Việt khi đang xem tiếng Việt, hoặc khi cần bù âm Hán Việt còn thiếu.
  * Component dùng hook này nên được gắn key theo từ + câu, để đổi từ là state tự làm mới.
  */
-export function useWordLookup(word: string, sentence: string, lang: MeaningLang): WordLookup {
+export function useWordLookup(word: string, sentence: string, lang: MeaningLang, mode: AiMode): WordLookup {
   const { meanings } = useServices();
   const entry = meanings.lookup(word);
   const [viet, setViet] = useState<VietState>({ status: 'idle' });
   const mounted = useRef(true);
   useEffect(() => () => { mounted.current = false; }, []);
 
+  // chạy lại khi đổi ngôn ngữ hoặc đổi Tự động / Nâng cao (đã có trong cache thì trả về ngay)
+  const lastRun = useRef('');
   useEffect(() => {
     const needHv = entry.hanviet.includes('?');
-    if (viet.status !== 'idle' || (lang !== 'vi' && !needHv)) return;
+    if (lang !== 'vi' && !needHv) return;
+    if (lastRun.current === mode) return; // đổi qua lại VI/EN không gọi lại AI
+    lastRun.current = mode;
     setViet({ status: 'loading' });
     const ctrl = new AbortController();
     const timer = window.setTimeout(() => ctrl.abort(), VIET_TIMEOUT);
+    const live = () => mounted.current && lastRun.current === mode;
     meanings
-      .vietnamese(entry, sentence, ctrl.signal)
-      .then((value) => mounted.current && setViet({ status: 'done', value }))
+      .vietnamese(entry, sentence, mode, ctrl.signal)
+      .then((value) => live() && setViet({ status: 'done', value }))
       .catch((e: Error) => {
-        if (!mounted.current) return;
+        if (!live()) return;
         const message = ctrl.signal.aborted ? 'AI trả lời quá lâu, thử chạm lại từ này.' : e.message;
         setViet({ status: 'error', message });
       })
       .finally(() => window.clearTimeout(timer));
-  }, [lang]);
+  }, [lang, mode]);
 
   const vietValue = viet.status === 'done' ? viet.value : null;
   return {

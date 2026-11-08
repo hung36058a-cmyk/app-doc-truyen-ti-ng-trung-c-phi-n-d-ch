@@ -1,6 +1,6 @@
 // services/MeaningService.ts — Ghép kết quả tra từ: từ điển offline (ngay lập tức) + nghĩa Việt từ AI (có cache).
 
-import type { DictEntry, VietMeaning } from '@/core/types';
+import type { AiMode, DictEntry, VietMeaning } from '@/core/types';
 import type { Dictionary } from '@/modules/dictionary/Dictionary';
 import { extractJson, type AiProvider } from '@/modules/ai/AiProvider';
 import { vietMeaningPrompt } from '@/modules/ai/prompts';
@@ -18,14 +18,18 @@ export class MeaningService {
     return this.dict.lookup(word) ?? { word, senses: [], hanviet: this.dict.hanviet(word) };
   }
 
-  /** Nghĩa tiếng Việt theo ngữ cảnh. Mỗi cặp (từ, câu) chỉ gọi AI một lần. */
-  async vietnamese(entry: DictEntry, sentence: string, signal?: AbortSignal): Promise<VietMeaning> {
-    const key = `${entry.word}|${sentence}`;
-    const cached = (await this.cache.get(key)) ?? (await this.cache.get(`${entry.word}|`));
+  /**
+   * Nghĩa tiếng Việt theo ngữ cảnh. Mỗi cặp (từ, câu) chỉ gọi AI một lần cho mỗi mức.
+   * mode 'save' = Dịch tự động (Gemini Flash), 'quality' = Dịch nâng cao (Gemini Pro); cache riêng từng mức.
+   */
+  async vietnamese(entry: DictEntry, sentence: string, mode: AiMode = 'save', signal?: AbortSignal): Promise<VietMeaning> {
+    const pro = mode === 'quality' ? 'pro|' : ''; // khóa cũ giữ nguyên cho Dịch tự động
+    const key = `${pro}${entry.word}|${sentence}`;
+    const cached = (await this.cache.get(key)) ?? (await this.cache.get(`${pro}${entry.word}|`));
     if (cached) return cached;
 
     const hint = entry.senses[0]?.english.slice(0, 4).join('; ') ?? '';
-    const text = await this.ai.complete(vietMeaningPrompt(entry.word, sentence, hint), { quality: 'quick', signal });
+    const text = await this.ai.complete(vietMeaningPrompt(entry.word, sentence, hint), { quality: mode === 'quality' ? 'best' : 'quick', signal });
     const parsed = extractJson<VietMeaning>(text);
     const value: VietMeaning = {
       meaning: String(parsed.meaning ?? '').trim(),
@@ -33,7 +37,7 @@ export class MeaningService {
       hanviet: parsed.hanviet ? String(parsed.hanviet).trim().toLowerCase() : undefined,
     };
     await this.cache.set(key, value);
-    await this.cache.set(`${entry.word}|`, value); // bản dự phòng không phụ thuộc câu
+    await this.cache.set(`${pro}${entry.word}|`, value); // bản dự phòng không phụ thuộc câu
     return value;
   }
 }

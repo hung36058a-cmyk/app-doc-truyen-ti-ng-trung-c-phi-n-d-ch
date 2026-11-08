@@ -1,6 +1,7 @@
 // ui/screens/ReaderScreen.tsx — Trang đọc toàn màn hình: chạm từ -> bong bóng nghĩa nhỏ ngay cạnh từ
 // ("Chi tiết" mở bảng đầy đủ), bấm giữ một chữ để dịch câu chứa nó, nhớ vị trí đọc, mục lục.
-// Chạm chỗ trống ở giữa: hiện/ẩn thanh tiêu đề (cuộn xuống tự ẩn); chạm mép trái/phải: lật lên/xuống
+// Thanh tiêu đề: cuộn xuống tự ẩn; chạm giữa trang (cả khi chạm vào chữ) hoặc cuộn ngược lên là hiện lại.
+// Chạm mép trái/phải: lật lên/xuống
 // một trang (tắt được trong Aa). Nút Aa mở thanh chỉnh hiển thị. Cuối chương có thẻ tổng kết từ đã lưu.
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
@@ -54,6 +55,13 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
   const [looked, setLooked] = useState<Set<string>>(() => storage.lookups.list());
   const [chrome, setChrome] = useState(true); // thanh tiêu đề đang hiện
   const lastTop = useRef(0);
+  const chromeSettle = useRef(0); // trước thời điểm này không đổi thanh theo cuộn
+  const showChrome = (v: boolean) => {
+    setChrome((cur) => {
+      if (cur !== v) chromeSettle.current = Date.now() + 300;
+      return v;
+    });
+  };
   const [sel, setSel] = useState<Selection | null>(null);
   const [showToc, setShowToc] = useState(false);
   const [showDisplay, setShowDisplay] = useState(false);
@@ -117,8 +125,14 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
       // cuộn thì đóng bong bóng nhỏ (nó gắn với vị trí của từ); cuộn xuống thì ẩn thanh tiêu đề
       if (sel && !sel.expanded) setSel(null);
       const delta = el.scrollTop - lastTop.current;
-      if (el.scrollTop < 8) setChrome(true);
-      else if (delta > 12) setChrome(false);
+      // cuộn ngược lên một chút là hiện lại thanh (không phải kéo lên tận đầu chương).
+      // Thanh ẩn/hiện làm khung đọc đổi chiều cao -> trình duyệt tự dịch scrollTop: bỏ qua các lần cuộn
+      // ngay sau đó và lúc đang chạm đáy chương, nếu không thanh sẽ nhấp nháy.
+      const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 4;
+      if (Date.now() > chromeSettle.current && !atBottom) {
+        if (el.scrollTop < 8 || delta < -10) showChrome(true);
+        else if (delta > 12) showChrome(false);
+      }
       lastTop.current = el.scrollTop;
     }
     window.clearTimeout(saveTimer.current);
@@ -150,6 +164,7 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
       if (!book) return;
       const text = book.chapters[chapter].paragraphs[para];
       setSel({ para, token, word, sentence: sentenceAt(text, offset), expanded: false });
+      setChrome(true); // chạm vào chữ giữa trang cũng hiện thanh tiêu đề (có nút Aa)
       storage.lookups.add(word);
       setLooked((prev) => (prev.has(word) ? prev : new Set(prev).add(word)));
     },
@@ -352,6 +367,8 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
           onSave={saveWord}
           onUnsave={() => unsaveWord(sel.word)}
           onExpand={() => setSel({ ...sel, expanded: true })}
+          aiMode={settings.aiMode}
+          onAiMode={(m) => onSettings({ aiMode: m })}
         />
       )}
 
@@ -366,6 +383,8 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
           onSave={saveWord}
           onUnsave={() => unsaveWord(sel.word)}
           onPick={(w) => setSel({ ...sel, word: w })}
+          aiMode={settings.aiMode}
+          onAiMode={(m) => onSettings({ aiMode: m })}
           onClose={() => setSel(null)}
         />
       )}

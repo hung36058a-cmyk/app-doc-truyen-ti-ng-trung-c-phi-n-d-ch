@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { AiMode, MeaningLang } from '@/core/types';
 import type { SentenceSpan } from '@/services/sentence';
 import { useServices } from '../context';
+import { AiTierToggle } from './AiTierToggle';
 
 export type TransMode = 'sentence' | 'paragraph';
 
@@ -103,10 +104,7 @@ export function TranslationSheet(p: Props) {
           </div>
         </div>
 
-        <div class="seg ai-tier" role="group" aria-label="Mức dịch">
-          <button aria-pressed={p.aiMode === 'save'} onClick={() => p.onAiMode('save')}>Dịch tự động</button>
-          <button aria-pressed={p.aiMode === 'quality'} onClick={() => p.onAiMode('quality')}>Dịch nâng cao</button>
-        </div>
+        <AiTierToggle value={p.aiMode} onChange={p.onAiMode} />
 
         {p.mode === 'sentence' ? (
           <>

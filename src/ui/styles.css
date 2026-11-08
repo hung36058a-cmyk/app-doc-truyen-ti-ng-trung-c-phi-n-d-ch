@@ -585,3 +585,7 @@ label.btn, label.add-tile { cursor: pointer; }
 .word-pop-wait .skeleton { width: 40px; height: 10px; flex-shrink: 0; }
 .word-pop-note { margin-top: 2px; }
 .clear-looked { align-self: flex-start; min-height: 36px; padding: 0 4px; color: var(--accent); font-size: 14px; }
+
+/* ---------- v2.3: mức dịch trong bong bóng tra từ ---------- */
+.ai-tier-sm { padding: 2px; border-radius: 10px; }
+.ai-tier-sm button { height: 30px; font-size: 12px; border-radius: 8px; }

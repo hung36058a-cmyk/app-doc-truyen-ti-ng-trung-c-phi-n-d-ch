@@ -3,10 +3,11 @@
 // nên tra nhiều từ liên tiếp không mất mạch đọc. "Chi tiết" mở bảng đầy đủ (WordSheet).
 
 import { useLayoutEffect, useRef, useState } from 'preact/hooks';
-import type { DictEntry, MeaningLang, VietMeaning } from '@/core/types';
+import type { AiMode, DictEntry, MeaningLang, VietMeaning } from '@/core/types';
 import { canSpeak, speak } from '@/modules/speech/speak';
 import { useWordLookup, type WordLookup } from '../hooks/useWordLookup';
 import { IconSpeaker, IconStar } from '../icons';
+import { AiTierToggle } from './AiTierToggle';
 
 interface Props {
   word: string;
@@ -16,6 +17,8 @@ interface Props {
   lang: MeaningLang;
   onSave: (entry: DictEntry, viet: VietMeaning | null) => void;
   onUnsave: () => void;
+  aiMode: AiMode; // 'save' = Dịch tự động, 'quality' = Dịch nâng cao
+  onAiMode: (m: AiMode) => void;
   onExpand: () => void;
 }
 
@@ -28,7 +31,7 @@ const TOP_SAFE = 64;
 interface Place { top: number; left: number; arrow: number; below: boolean }
 
 export function WordPopover(p: Props) {
-  const look = useWordLookup(p.word, p.sentence, p.lang);
+  const look = useWordLookup(p.word, p.sentence, p.lang, p.aiMode);
   const box = useRef<HTMLDivElement>(null);
   const [place, setPlace] = useState<Place | null>(null);
 
@@ -77,6 +80,7 @@ export function WordPopover(p: Props) {
         )}
       </div>
       <div class="word-pop-meaning" aria-live="polite"><ShortMeaning look={look} lang={p.lang} /></div>
+      <AiTierToggle value={p.aiMode} onChange={p.onAiMode} small />
       <div class="word-pop-actions">
         {p.isSaved ? (
           <button class="btn word-pop-saved" onClick={p.onUnsave}><IconStar size={16} filled /> Đã lưu</button>

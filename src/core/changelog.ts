@@ -9,6 +9,14 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '2.3',
+    date: '09/11/2026',
+    notes: [
+      'Bong bóng tra từ và bảng tra từ đầy đủ có nút "Dịch tự động / Dịch nâng cao" (nghĩa từ/cụm từ bằng Gemini Flash hoặc Gemini Pro)',
+      'Chạm vào giữa trang (kể cả chạm vào chữ) là hiện thanh tiêu đề có nút Aa; cuộn ngược lên một chút cũng hiện lại',
+    ],
+  },
+  {
     version: '2.2',
     date: '09/11/2026',
     notes: [

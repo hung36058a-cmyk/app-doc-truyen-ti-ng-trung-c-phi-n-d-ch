@@ -1,10 +1,11 @@
 // ui/components/WordSheet.tsx — Popup tra từ (trượt lên từ đáy màn hình):
 // từ, pinyin, âm Hán Việt, nghĩa Việt (AI) / Anh (CC-CEDICT), nút Lưu, nút nghe, tra từng chữ.
 
-import type { DictEntry, MeaningLang, VietMeaning } from '@/core/types';
+import type { AiMode, DictEntry, MeaningLang, VietMeaning } from '@/core/types';
 import { canSpeak, speak } from '@/modules/speech/speak';
 import { useWordLookup, type VietState } from '../hooks/useWordLookup';
 import { IconSpeaker, IconStar } from '../icons';
+import { AiTierToggle } from './AiTierToggle';
 
 interface Props {
   word: string;
@@ -14,12 +15,14 @@ interface Props {
   onLang: (l: MeaningLang) => void;
   onSave: (entry: DictEntry, viet: VietMeaning | null) => void;
   onUnsave: () => void;
+  aiMode: AiMode; // 'save' = Dịch tự động, 'quality' = Dịch nâng cao
+  onAiMode: (m: AiMode) => void;
   onPick: (word: string) => void;
   onClose: () => void;
 }
 
 export function WordSheet(p: Props) {
-  const { entry, viet, vietValue, hanviet, pinyins } = useWordLookup(p.word, p.sentence, p.lang);
+  const { entry, viet, vietValue, hanviet, pinyins } = useWordLookup(p.word, p.sentence, p.lang, p.aiMode);
   const chars = [...p.word];
 
   return (
@@ -39,6 +42,8 @@ export function WordSheet(p: Props) {
             <button aria-pressed={p.lang === 'en'} onClick={() => p.onLang('en')}>EN</button>
           </div>
         </div>
+
+        <AiTierToggle value={p.aiMode} onChange={p.onAiMode} />
 
         <div class="sheet-meaning" aria-live="polite">
           {p.lang === 'vi' ? <VietBlock state={viet} /> : <EnglishBlock entry={entry} />}
