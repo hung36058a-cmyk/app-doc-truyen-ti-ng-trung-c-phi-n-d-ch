@@ -1,7 +1,7 @@
 // sw.js — Service worker: lưu app + từ điển vào máy để mở được khi không có mạng.
 // Đổi VERSION mỗi khi phát hành bản mới để điện thoại tải bản mới về.
 
-const VERSION = 'v6';
+const VERSION = 'v7';
 const CACHE = `doc-truyen-${VERSION}`;
 const CORE = ['./', './index.html', './manifest.webmanifest', './data/cedict.tsv', './data/hanviet.tsv', './icons/icon-192.png'];
 

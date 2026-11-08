@@ -6,8 +6,9 @@
 import type { AiProvider, CompleteOptions } from './AiProvider';
 
 const MODELS: Record<'quick' | 'best', string[]> = {
-  quick: ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-3.6-flash', 'gemini-flash-lite-latest'],
-  best: ['gemini-3.6-flash', 'gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.5-flash-lite'],
+  // quick: tra nghĩa từ (rẻ, nhanh) · best: dịch đoạn và tạo thẻ Anki
+  quick: ['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-2.5-flash-lite'],
+  best: ['gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite'],
 };
 const ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
 
