@@ -37,13 +37,14 @@ export function WordSheet(p: Props) {
               {pinyins.join(' / ') || '—'} · [{hanviet}]
             </div>
           </div>
-          <div class="seg" role="group" aria-label="Ngôn ngữ nghĩa">
-            <button aria-pressed={p.lang === 'vi'} onClick={() => p.onLang('vi')}>VI</button>
-            <button aria-pressed={p.lang === 'en'} onClick={() => p.onLang('en')}>EN</button>
+          <div class="sheet-top-right">
+            <AiTierToggle value={p.aiMode} onChange={p.onAiMode} />
+            <div class="seg" role="group" aria-label="Ngôn ngữ nghĩa">
+              <button aria-pressed={p.lang === 'vi'} onClick={() => p.onLang('vi')}>VI</button>
+              <button aria-pressed={p.lang === 'en'} onClick={() => p.onLang('en')}>EN</button>
+            </div>
           </div>
         </div>
-
-        <AiTierToggle value={p.aiMode} onChange={p.onAiMode} />
 
         <div class="sheet-meaning" aria-live="polite">
           {p.lang === 'vi' ? <VietBlock state={viet} /> : <EnglishBlock entry={entry} />}

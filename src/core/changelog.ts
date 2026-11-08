@@ -9,6 +9,13 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '2.4',
+    date: '09/11/2026',
+    notes: [
+      'Thanh "Dịch tự động / Dịch nâng cao" đổi thành công tắc nhỏ "Nâng cao" ở góc trên (bong bóng tra từ, bảng tra từ, khung dịch), xa nút Lưu để khó bấm nhầm',
+    ],
+  },
+  {
     version: '2.3',
     date: '09/11/2026',
     notes: [

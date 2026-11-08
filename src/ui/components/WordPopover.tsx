@@ -73,6 +73,7 @@ export function WordPopover(p: Props) {
         <span class="word-pop-reading">
           {look.pinyins[0] || '—'} <span class="word-pop-hv">[{look.hanviet}]</span>
         </span>
+        <AiTierToggle value={p.aiMode} onChange={p.onAiMode} />
         {canSpeak() && (
           <button class="icon-btn word-pop-icon" aria-label="Nghe phát âm" onClick={() => speak(p.word)}>
             <IconSpeaker size={18} />
@@ -80,7 +81,6 @@ export function WordPopover(p: Props) {
         )}
       </div>
       <div class="word-pop-meaning" aria-live="polite"><ShortMeaning look={look} lang={p.lang} /></div>
-      <AiTierToggle value={p.aiMode} onChange={p.onAiMode} small />
       <div class="word-pop-actions">
         {p.isSaved ? (
           <button class="btn word-pop-saved" onClick={p.onUnsave}><IconStar size={16} filled /> Đã lưu</button>

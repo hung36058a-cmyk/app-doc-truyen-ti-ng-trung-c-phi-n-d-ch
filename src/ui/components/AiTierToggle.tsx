@@ -1,20 +1,26 @@
-// ui/components/AiTierToggle.tsx — Hai nút "Dịch tự động / Dịch nâng cao", dùng chung ở bong bóng tra từ,
-// bảng tra từ đầy đủ và khung dịch câu/đoạn. Đổi ở đâu cũng là đổi chung một cài đặt (aiMode).
-// Tự động = Gemini Flash, nâng cao = Gemini Pro.
+// ui/components/AiTierToggle.tsx — Công tắc nhỏ "Nâng cao" (bật = Dịch nâng cao / Gemini Pro,
+// tắt = Dịch tự động / Gemini Flash). Dùng chung ở bong bóng tra từ, bảng tra từ và khung dịch câu/đoạn;
+// đổi ở đâu cũng là đổi chung một cài đặt (aiMode). Cố ý làm nhỏ, đặt xa nút Lưu để khó bấm nhầm.
 
 import type { AiMode } from '@/core/types';
 
 interface Props {
   value: AiMode;
   onChange: (m: AiMode) => void;
-  small?: boolean; // bản gọn cho bong bóng tra từ
 }
 
-export function AiTierToggle({ value, onChange, small = false }: Props) {
+export function AiTierToggle({ value, onChange }: Props) {
+  const on = value === 'quality';
   return (
-    <div class={`seg ai-tier${small ? ' ai-tier-sm' : ''}`} role="group" aria-label="Mức dịch">
-      <button aria-pressed={value === 'save'} onClick={() => onChange('save')}>Dịch tự động</button>
-      <button aria-pressed={value === 'quality'} onClick={() => onChange('quality')}>Dịch nâng cao</button>
-    </div>
+    <button
+      class="tier-switch"
+      role="switch"
+      aria-checked={on}
+      title={on ? 'Đang dùng Dịch nâng cao (Gemini Pro)' : 'Đang dùng Dịch tự động (Gemini Flash)'}
+      onClick={() => onChange(on ? 'save' : 'quality')}
+    >
+      <span class="tier-track" aria-hidden="true"><span class="tier-thumb" /></span>
+      Nâng cao
+    </button>
   );
 }

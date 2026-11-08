@@ -589,3 +589,18 @@ label.btn, label.add-tile { cursor: pointer; }
 /* ---------- v2.3: mức dịch trong bong bóng tra từ ---------- */
 .ai-tier-sm { padding: 2px; border-radius: 10px; }
 .ai-tier-sm button { height: 30px; font-size: 12px; border-radius: 8px; }
+
+/* ---------- v2.4: công tắc "Nâng cao" nhỏ gọn thay cho thanh 2 nút ---------- */
+.ai-tier { display: none; } /* thanh cũ (v2.1–2.3) không còn dùng */
+.sheet-top-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.tier-switch {
+  display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0;
+  height: 26px; padding: 0 8px 0 4px; border-radius: 999px; border: 1px solid var(--line);
+  background: transparent; color: var(--faint); font: 600 11px/1 var(--font-ui); white-space: nowrap;
+}
+.tier-track { position: relative; width: 22px; height: 12px; border-radius: 6px; background: var(--line-strong); transition: background-color 150ms; }
+.tier-thumb { position: absolute; top: 2px; left: 2px; width: 8px; height: 8px; border-radius: 50%; background: var(--surface); transition: transform 150ms; }
+.tier-switch[aria-checked="true"] { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.tier-switch[aria-checked="true"] .tier-track { background: var(--accent); }
+.tier-switch[aria-checked="true"] .tier-thumb { transform: translateX(10px); }
+.word-pop-head .tier-switch { margin-left: auto; }

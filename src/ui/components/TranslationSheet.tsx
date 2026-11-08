@@ -98,13 +98,14 @@ export function TranslationSheet(p: Props) {
         <div class="grip" aria-hidden="true" />
         <div class="sheet-top">
           <h2 class="sheet-heading">{p.mode === 'paragraph' ? 'Dịch cả đoạn' : `Câu ${p.sentenceIndex + 1} / ${p.sentenceCount}`}</h2>
-          <div class="seg" role="group" aria-label="Ngôn ngữ bản dịch">
-            <button aria-pressed={p.lang === 'vi'} onClick={() => p.onLang('vi')}>VI</button>
-            <button aria-pressed={p.lang === 'en'} onClick={() => p.onLang('en')}>EN</button>
+          <div class="sheet-top-right">
+            <AiTierToggle value={p.aiMode} onChange={p.onAiMode} />
+            <div class="seg" role="group" aria-label="Ngôn ngữ bản dịch">
+              <button aria-pressed={p.lang === 'vi'} onClick={() => p.onLang('vi')}>VI</button>
+              <button aria-pressed={p.lang === 'en'} onClick={() => p.onLang('en')}>EN</button>
+            </div>
           </div>
         </div>
-
-        <AiTierToggle value={p.aiMode} onChange={p.onAiMode} />
 
         {p.mode === 'sentence' ? (
           <>
