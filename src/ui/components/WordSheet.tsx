@@ -1,11 +1,9 @@
 // ui/components/WordSheet.tsx — Popup tra từ (trượt lên từ đáy màn hình):
 // từ, pinyin, âm Hán Việt, nghĩa Việt (AI) / Anh (CC-CEDICT), nút Lưu, nút nghe, tra từng chữ.
 
-import { useEffect, useRef, useState } from 'preact/hooks';
 import type { DictEntry, MeaningLang, VietMeaning } from '@/core/types';
-import { mergeHanviet } from '@/services/MeaningService';
 import { canSpeak, speak } from '@/modules/speech/speak';
-import { useServices } from '../context';
+import { useWordLookup, type VietState } from '../hooks/useWordLookup';
 import { IconSpeaker, IconStar } from '../icons';
 
 interface Props {
@@ -20,31 +18,8 @@ interface Props {
   onClose: () => void;
 }
 
-type VietState = { status: 'idle' | 'loading' } | { status: 'done'; value: VietMeaning } | { status: 'error'; message: string };
-
 export function WordSheet(p: Props) {
-  const { meanings } = useServices();
-  const entry = meanings.lookup(p.word);
-  const [viet, setViet] = useState<VietState>({ status: 'idle' });
-
-  // Lấy nghĩa Việt khi đang xem tab VI, hoặc khi cần bù âm Hán Việt còn thiếu.
-  // Component được gắn key theo từ + câu ở màn đọc, nên đổi từ là state tự làm mới.
-  useEffect(() => {
-    const needHv = entry.hanviet.includes('?');
-    if (viet.status !== 'idle' || (p.lang !== 'vi' && !needHv)) return;
-    setViet({ status: 'loading' });
-    meanings
-      .vietnamese(entry, p.sentence)
-      .then((value) => mounted.current && setViet({ status: 'done', value }))
-      .catch((e: Error) => mounted.current && setViet({ status: 'error', message: e.message }));
-  }, [p.lang]);
-
-  const mounted = useRef(true);
-  useEffect(() => () => { mounted.current = false; }, []);
-
-  const vietValue = viet.status === 'done' ? viet.value : null;
-  const hanviet = mergeHanviet(entry.hanviet, vietValue?.hanviet);
-  const pinyins = [...new Set(entry.senses.map((s) => s.pinyin))].slice(0, 3);
+  const { entry, viet, vietValue, hanviet, pinyins } = useWordLookup(p.word, p.sentence, p.lang);
   const chars = [...p.word];
 
   return (

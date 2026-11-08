@@ -1,6 +1,8 @@
-// ui/screens/VocabScreen.tsx — Sổ từ vựng: hai nhóm Chưa xuất / Đã xuất.
+// ui/screens/VocabScreen.tsx — Sổ từ vựng: hai nhóm Chưa xuất / Đã xuất, từ xếp theo từng truyện.
+// Thẻ xuất Anki nằm ngay đầu nhóm Chưa xuất, ghi rõ bao nhiêu thẻ đang chờ.
 // Khi mở sổ, AI tạo nội dung thẻ cho mọi từ chưa có (chạy song song). Xem, sửa, tạo lại từng thẻ; xuất .apkg.
 
+import { Fragment } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { AppSettings, CardContent, SavedWord } from '@/core/types';
 import { compactPinyin, comparisonLines } from '@/modules/anki/cardHtml';
@@ -102,7 +104,9 @@ export function VocabScreen({ settings }: { settings: AppSettings }) {
   const ready = pending.filter((w) => w.card);
   const loadingCount = Object.values(gen).filter((g) => g.status === 'loading').length;
   const failed = pending.filter((w) => gen[w.word]?.status === 'error');
-  const shown = group === 'pending' ? pending : exported;
+  // xếp theo truyện (truyện có từ lưu gần nhất đứng đầu), trong mỗi truyện giữ thứ tự mới lưu trước
+  const byBook = sortByBook(group === 'pending' ? pending : exported);
+  const shown = byBook;
 
   /** txt (mặc định): import vào note type Basic có sẵn · apkg: gói thẻ kèm note type riêng */
   const doExport = async (format: ExportFormat) => {
@@ -134,6 +138,27 @@ export function VocabScreen({ settings }: { settings: AppSettings }) {
         <button role="tab" aria-selected={group === 'pending'} onClick={() => setGroup('pending')}>Chưa xuất · {pending.length}</button>
         <button role="tab" aria-selected={group === 'exported'} onClick={() => setGroup('exported')}>Đã xuất · {exported.length}</button>
       </div>
+
+      {group === 'pending' && pending.length > 0 && (
+        <section class="export-card" aria-label="Xuất thẻ Anki">
+          <div class="export-card-info">
+            <span class="export-card-count">{ready.length}</span>
+            <span>
+              <strong>thẻ sẵn sàng xuất sang Anki</strong>
+              <span class="meta">
+                Deck {settings.ankiDeck || 'zhongwenB1'}
+                {ready.length < pending.length && ` · ${pending.length - ready.length} từ chưa có thẻ sẽ chờ lần sau`}
+              </span>
+            </span>
+          </div>
+          <button class="btn export-btn" disabled={ready.length === 0 || exp.status === 'working'} onClick={() => doExport('txt')}>
+            {exp.status === 'working' ? 'Đang tạo file…' : `Xuất ${ready.length} thẻ (.txt)`}
+          </button>
+          <button class="btn btn-ghost export-alt" disabled={ready.length === 0 || exp.status === 'working'} onClick={() => doExport('apkg')}>
+            Xuất dạng .apkg
+          </button>
+        </section>
+      )}
 
       {group === 'pending' && loadingCount > 0 && (
         <p class="notice" aria-live="polite">
@@ -179,10 +204,18 @@ export function VocabScreen({ settings }: { settings: AppSettings }) {
         </div>
       ) : (
         <div class="word-list">
-          {shown.map((w) => {
+          {shown.map((w, idx) => {
             const g = gen[w.word];
             const isOpen = open === w.word;
+            const newBook = idx === 0 || byBook[idx - 1].bookId !== w.bookId;
             return (
+              <Fragment key={w.word}>
+              {newBook && (
+                <h2 class="book-group">
+                  <span class="han">{w.bookTitle || 'Không rõ truyện'}</span>
+                  <span class="book-group-count">{shown.filter((x) => x.bookId === w.bookId).length}</span>
+                </h2>
+              )}
               <article class={`word-card${isOpen ? ' is-open' : ''}`} key={w.word}>
                 <button class="word-card-summary" aria-expanded={isOpen} onClick={() => { setOpen(isOpen ? null : w.word); setEditing(null); setConfirmRemove(null); }}>
                   <span class="word-card-word" lang="zh-Hant">{w.word}</span>
@@ -223,27 +256,21 @@ export function VocabScreen({ settings }: { settings: AppSettings }) {
                   </div>
                 )}
               </article>
+              </Fragment>
             );
           })}
         </div>
       )}
 
-      {group === 'pending' && pending.length > 0 && (
-        <div class="export-bar">
-          <button class="btn btn-primary export-btn" disabled={ready.length === 0 || exp.status === 'working'} onClick={() => doExport('txt')}>
-            {exp.status === 'working' ? 'Đang tạo file…' : `Xuất ${ready.length} thẻ (.txt)`}
-          </button>
-          <button class="btn btn-ghost export-alt" disabled={ready.length === 0 || exp.status === 'working'} onClick={() => doExport('apkg')}>
-            Xuất dạng .apkg
-          </button>
-          <p class="meta">
-            Deck: {settings.ankiDeck || 'zhongwenB1'}
-            {ready.length < pending.length && ` · ${pending.length - ready.length} từ chưa có thẻ sẽ chờ lần sau`}
-          </p>
-        </div>
-      )}
     </main>
   );
+}
+
+/** Gom từ theo truyện, giữ thứ tự xuất hiện đầu tiên của mỗi truyện (danh sách vào đã xếp mới -> cũ). */
+function sortByBook(list: SavedWord[]): SavedWord[] {
+  const order = new Map<string, number>();
+  list.forEach((w) => { if (!order.has(w.bookId)) order.set(w.bookId, order.size); });
+  return [...list].sort((a, b) => order.get(a.bookId)! - order.get(b.bookId)!);
 }
 
 function StatusChip({ word, gen }: { word: SavedWord; gen?: GenState }) {

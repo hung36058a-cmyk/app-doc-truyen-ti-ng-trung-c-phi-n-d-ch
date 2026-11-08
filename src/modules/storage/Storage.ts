@@ -35,6 +35,12 @@ export interface TranslationCache {
   set(key: string, value: string): Promise<void>;
 }
 
+/** Các từ đã từng tra (để gạch chân chấm trên trang đọc). Lưu nhẹ, đọc đồng bộ. */
+export interface LookupRepo {
+  list(): Set<string>;
+  add(word: string): void;
+}
+
 export interface SettingsRepo {
   load(): AppSettings;
   save(s: AppSettings): void;
@@ -47,4 +53,5 @@ export interface Storage {
   meanings: MeaningCache;
   translations: TranslationCache;
   settings: SettingsRepo;
+  lookups: LookupRepo;
 }

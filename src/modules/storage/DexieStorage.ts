@@ -7,6 +7,9 @@ import type { Storage } from './Storage';
 
 import { DEFAULT_SETTINGS } from '@/core/defaults';
 const SETTINGS_KEY = 'doc-truyen:settings';
+const LOOKUPS_KEY = 'doc-truyen:looked-up';
+/** Giữ tối đa bấy nhiêu từ đã tra gần nhất (đủ cho vài cuốn truyện, vẫn nhẹ). */
+const MAX_LOOKUPS = 5000;
 
 class Db extends Dexie {
   books!: Table<Book & { chapterCount: number }, string>;
@@ -77,6 +80,24 @@ export function createDexieStorage(): Storage {
     translations: {
       get: async (key) => (await db.translations.get(key))?.value,
       set: async (key, value) => { await db.translations.put({ key, value }); },
+    },
+    lookups: {
+      list() {
+        try {
+          return new Set(JSON.parse(localStorage.getItem(LOOKUPS_KEY) ?? '[]') as string[]);
+        } catch {
+          return new Set();
+        }
+      },
+      add(word) {
+        try {
+          const list = (JSON.parse(localStorage.getItem(LOOKUPS_KEY) ?? '[]') as string[]).filter((w) => w !== word);
+          list.push(word);
+          localStorage.setItem(LOOKUPS_KEY, JSON.stringify(list.slice(-MAX_LOOKUPS)));
+        } catch {
+          /* trình duyệt chặn lưu: chỉ nhớ trong phiên này */
+        }
+      },
     },
     settings: {
       load() {

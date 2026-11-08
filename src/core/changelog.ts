@@ -9,6 +9,19 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '2.0',
+    date: '09/11/2026',
+    notes: [
+      'Logo mới: quyển sách mở, trang phải là bản dịch có từ tô vàng',
+      'Thư viện: thẻ "Đọc tiếp" ghi số từ đã lưu từ truyện đó; chip lọc Tất cả / Đang đọc / Chưa đọc / Xong; bìa tự tạo đẹp hơn (chữ đầu tên truyện cỡ lớn, 6 màu)',
+      'Trang đọc toàn màn hình: cuộn xuống tự ẩn thanh tiêu đề, chạm giữa trang để hiện/ẩn; chạm mép trái/phải để lật trang (tắt được trong Aa)',
+      'Chạm một từ: hiện bong bóng nghĩa nhỏ ngay cạnh từ (Lưu, Nghe, Chi tiết) thay vì bảng che nửa màn hình',
+      'Từ đã tra nhưng chưa lưu có gạch chân chấm; từ đã lưu vẫn tô vàng',
+      'Cuối chương có thẻ tổng kết: các từ đã lưu trong chương, nút lớn sang chương sau',
+      'Sổ từ: nhóm theo truyện, thẻ xuất Anki nằm ngay đầu kèm số thẻ đang chờ',
+    ],
+  },
+  {
     version: '1.1',
     date: '08/11/2026',
     notes: [

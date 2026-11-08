@@ -1,13 +1,16 @@
-// ui/screens/ReaderScreen.tsx — Trang đọc: hiện chương, chạm từ để tra, lưu từ, nhớ vị trí đọc, mục lục,
-// bấm giữ một chữ để dịch câu chứa nó (trong khung có nút dịch cả đoạn), chạm chỗ trống (hoặc nút Aa)
-// để mở thanh chỉnh hiển thị. Đầu và cuối chương có nút chương trước/sau; mép dưới có thanh tiến độ đọc.
+// ui/screens/ReaderScreen.tsx — Trang đọc toàn màn hình: chạm từ -> bong bóng nghĩa nhỏ ngay cạnh từ
+// ("Chi tiết" mở bảng đầy đủ), bấm giữ một chữ để dịch câu chứa nó, nhớ vị trí đọc, mục lục.
+// Chạm chỗ trống ở giữa: hiện/ẩn thanh tiêu đề (cuộn xuống tự ẩn); chạm mép trái/phải: lật lên/xuống
+// một trang (tắt được trong Aa). Nút Aa mở thanh chỉnh hiển thị. Cuối chương có thẻ tổng kết từ đã lưu.
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
-import type { AppSettings, Book, DictEntry, ReaderDisplay, VietMeaning } from '@/core/types';
+import type { AppSettings, Book, DictEntry, ReaderDisplay, SavedWord, VietMeaning } from '@/core/types';
 import { sentenceAt, splitSentences } from '@/services/sentence';
 import { useServices } from '../context';
 import { Paragraph } from '../components/Paragraph';
 import { WordSheet } from '../components/WordSheet';
+import { WordPopover } from '../components/WordPopover';
+import { ChapterEnd } from '../components/ChapterEnd';
 import { TocSheet } from '../components/TocSheet';
 import { displayTitles, isTocPage } from '@/services/tocTitles';
 import { TranslationSheet, type TransMode } from '../components/TranslationSheet';
@@ -32,13 +35,23 @@ interface Selection {
   token: number;
   word: string; // từ đang xem trong popup (có thể là 1 chữ con khi tra từng chữ)
   sentence: string;
+  expanded: boolean; // false = bong bóng nhỏ cạnh từ, true = bảng đầy đủ ở đáy màn hình
 }
+
+/** Chạm trong phần này (tính từ mỗi mép, theo bề ngang) thì lật trang thay vì hiện/ẩn thanh tiêu đề. */
+const EDGE_ZONE = 0.3;
+/** Khi lật trang, giữ lại bấy nhiêu px của trang trước để không mất dòng. */
+const PAGE_OVERLAP = 48;
 
 export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose }: Props) {
   const { storage, segmenter } = useServices();
   const [book, setBook] = useState<Book | null>(null);
   const [chapter, setChapter] = useState(0);
-  const [saved, setSaved] = useState<Set<string>>(new Set());
+  const [savedList, setSavedList] = useState<SavedWord[]>([]);
+  const saved = useMemo(() => new Set(savedList.map((w) => w.word)), [savedList]);
+  const [looked, setLooked] = useState<Set<string>>(() => storage.lookups.list());
+  const [chrome, setChrome] = useState(true); // thanh tiêu đề đang hiện
+  const lastTop = useRef(0);
   const [sel, setSel] = useState<Selection | null>(null);
   const [showToc, setShowToc] = useState(false);
   const [showDisplay, setShowDisplay] = useState(false);
@@ -58,7 +71,7 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
       ]);
       if (!b) return onClose();
       setBook(b);
-      setSaved(new Set(words.map((w) => w.word)));
+      setSavedList(words);
       const ch = Math.min(p?.chapterIndex ?? 0, b.chapters.length - 1);
       setChapter(ch);
       restoreTo.current = p?.paragraphIndex ?? 0;
@@ -97,6 +110,15 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
   const saveTimer = useRef<number>();
   const onScroll = () => {
     updatePos();
+    const el = body.current;
+    if (el) {
+      // cuộn thì đóng bong bóng nhỏ (nó gắn với vị trí của từ); cuộn xuống thì ẩn thanh tiêu đề
+      if (sel && !sel.expanded) setSel(null);
+      const delta = el.scrollTop - lastTop.current;
+      if (el.scrollTop < 8) setChrome(true);
+      else if (delta > 12) setChrome(false);
+      lastTop.current = el.scrollTop;
+    }
     window.clearTimeout(saveTimer.current);
     saveTimer.current = window.setTimeout(() => {
       const el = body.current;
@@ -116,6 +138,7 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
     setSel(null);
     setShowToc(false);
     setChapter(next);
+    setChrome(true);
     restoreTo.current = 0;
     storage.progress.save({ bookId, chapterIndex: next, paragraphIndex: 0, updatedAt: Date.now() });
   };
@@ -124,7 +147,9 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
     (para: number, token: number, word: string, offset: number) => {
       if (!book) return;
       const text = book.chapters[chapter].paragraphs[para];
-      setSel({ para, token, word, sentence: sentenceAt(text, offset) });
+      setSel({ para, token, word, sentence: sentenceAt(text, offset), expanded: false });
+      storage.lookups.add(word);
+      setLooked((prev) => (prev.has(word) ? prev : new Set(prev).add(word)));
     },
     [book, chapter],
   );
@@ -132,7 +157,7 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
   const saveWord = async (entry: DictEntry, viet: VietMeaning | null) => {
     if (!book || !sel) return;
     const first = entry.senses[0];
-    await storage.words.save({
+    const w: SavedWord = {
       word: entry.word,
       pinyin: first?.pinyin ?? '',
       hanviet: entry.hanviet,
@@ -144,15 +169,14 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
       chapterIndex: chapter,
       savedAt: Date.now(),
       exported: false,
-    });
-    setSaved(new Set([...saved, entry.word]));
+    };
+    await storage.words.save(w);
+    setSavedList((list) => [w, ...list.filter((x) => x.word !== w.word)]);
   };
 
   const unsaveWord = async (word: string) => {
     await storage.words.remove(word);
-    const next = new Set(saved);
-    next.delete(word);
-    setSaved(next);
+    setSavedList((list) => list.filter((x) => x.word !== word));
   };
 
   // bấm giữ một chữ -> dịch câu chứa chữ đó
@@ -172,12 +196,30 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
     },
   );
 
-  // chạm vào chỗ không phải từ (khoảng trống, dấu câu) -> bật/tắt thanh chỉnh hiển thị
+  // chạm vào chỗ không phải từ (khoảng trống, dấu câu, lề):
+  // đang mở bong bóng -> đóng · mép trái/phải -> lật trang · giữa -> hiện/ẩn thanh tiêu đề
   const onBodyClick = (e: MouseEvent) => {
     const t = e.target as HTMLElement;
-    if (t.closest('[data-t], button, a, .chapter-title')) return;
-    setSel(null);
-    setShowDisplay((v) => !v);
+    if (t.closest('[data-t], button, a, .chapter-title, .chapter-end')) return;
+    if (sel) return setSel(null);
+    const el = body.current;
+    const x = e.clientX / document.documentElement.clientWidth;
+    if (el && settings.reader.tapPaging && (x < EDGE_ZONE || x > 1 - EDGE_ZONE)) {
+      const dir = x < EDGE_ZONE ? -1 : 1;
+      el.scrollBy({ top: dir * (el.clientHeight - PAGE_OVERLAP), behavior: 'smooth' });
+      return;
+    }
+    setChrome((v) => !v);
+  };
+
+  /** Từ đang chọn trên trang (để đặt bong bóng nghĩa cạnh nó). */
+  const selAnchor = () =>
+    sel && sel.para >= 0 ? body.current?.querySelector<HTMLElement>(`[data-p="${sel.para}"] [data-t="${sel.token}"]`) ?? null : null;
+
+  /** Chạm một từ trên thẻ cuối chương: mở bảng đầy đủ với câu gốc đã lưu. */
+  const openSavedWord = (word: string) => {
+    const w = savedList.find((x) => x.word === word);
+    setSel({ para: -1, token: -1, word, sentence: w?.sentence ?? '', expanded: true });
   };
 
   const setDisplay = (patch: Partial<ReaderDisplay>) => onSettings({ reader: { ...settings.reader, ...patch } });
@@ -202,13 +244,14 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
   const ch = book?.chapters[chapter];
   const titles = book ? displayTitles(book.chapters.map((c) => c.title)) : [];
   const chTitle = titles[chapter] ?? ch?.title ?? '';
-  const sheetOpen = sel !== null || trans !== null || showDisplay;
+  const sheetOpen = (sel !== null && sel.expanded) || trans !== null || showDisplay;
+  const savedHere = book ? savedList.filter((w) => w.bookId === book.id && w.chapterIndex === chapter).map((w) => w.word) : [];
   const transText = trans && ch ? ch.paragraphs[trans.para] : '';
   const transSpans = useMemo(() => splitSentences(transText), [transText]);
 
   return (
     <div class="reader" data-paper={d.paper} data-font={d.font} style={displayVars}>
-      <header class="reader-head">
+      <header class={`reader-head${chrome || sheetOpen ? '' : ' is-hidden'}`}>
         <button class="icon-btn" aria-label="Về thư viện" onClick={onClose}><IconBack /></button>
         <button class="chapter-btn" onClick={() => setShowToc(true)} aria-label="Mở mục lục">
           {chTitle || book?.title || ''}
@@ -255,16 +298,14 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
                   text={text}
                   segmenter={segmenter}
                   saved={saved}
+                  looked={looked}
                   selectedToken={sel?.para === i ? sel.token : null}
                   hlStart={trans?.para === i ? (trans.mode === 'paragraph' ? 0 : transSpans[trans.sentence]?.start ?? -1) : -1}
                   hlEnd={trans?.para === i ? (trans.mode === 'paragraph' ? Infinity : transSpans[trans.sentence]?.end ?? -1) : -1}
                   onTap={onTap}
                 />
               ))}
-              <ChapterNav place="bottom" chapter={chapter} count={book.chapters.length} onGo={goChapter} />
-              <p class="meta" style={{ textAlign: 'center', marginTop: '14px' }}>
-                Chương {chapter + 1} / {book.chapters.length}
-              </p>
+              <ChapterEnd chapter={chapter} count={book.chapters.length} savedHere={savedHere} onGo={goChapter} onWord={openSavedWord} />
             </article>
           )
         )}
@@ -289,14 +330,28 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
           mode={trans.mode}
           onMode={(mode) => setTrans({ ...trans, mode })}
           onMove={(d) => setTrans({ ...trans, sentence: trans.sentence + d })}
-          onPickWord={(word, at) => setSel({ para: trans.para, token: tokenAt(transText, at), word, sentence: transSpans[trans.sentence].text })}
+          onPickWord={(word, at) => setSel({ para: trans.para, token: tokenAt(transText, at), word, sentence: transSpans[trans.sentence].text, expanded: true })}
           lang={settings.meaningLang}
           onLang={(l) => onSettings({ meaningLang: l })}
           onClose={() => setTrans(null)}
         />
       )}
 
-      {sel && (
+      {sel && !sel.expanded && (
+        <WordPopover
+          key={`${sel.para}|${sel.token}|${sel.word}`}
+          word={sel.word}
+          sentence={sel.sentence}
+          anchor={selAnchor}
+          isSaved={saved.has(sel.word)}
+          lang={settings.meaningLang}
+          onSave={saveWord}
+          onUnsave={() => unsaveWord(sel.word)}
+          onExpand={() => setSel({ ...sel, expanded: true })}
+        />
+      )}
+
+      {sel && sel.expanded && (
         <WordSheet
           key={`${sel.word}|${sel.sentence}`}
           word={sel.word}
