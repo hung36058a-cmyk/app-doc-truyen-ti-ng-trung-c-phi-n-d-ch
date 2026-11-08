@@ -8,6 +8,7 @@ import { useServices } from '../context';
 import { Paragraph } from '../components/Paragraph';
 import { WordSheet } from '../components/WordSheet';
 import { TocSheet } from '../components/TocSheet';
+import { displayTitles, isTocPage } from '@/services/tocTitles';
 import { TranslationSheet } from '../components/TranslationSheet';
 import { DisplayBar } from '../components/DisplayBar';
 import { useLongPress } from '../hooks/useLongPress';
@@ -161,6 +162,8 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
   };
 
   const ch = book?.chapters[chapter];
+  const titles = book ? displayTitles(book.chapters.map((c) => c.title)) : [];
+  const chTitle = titles[chapter] ?? ch?.title ?? '';
   const sheetOpen = sel !== null || trans !== null || showDisplay;
 
   return (
@@ -168,7 +171,7 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
       <header class="reader-head">
         <button class="icon-btn" aria-label="Về thư viện" onClick={onClose}><IconBack /></button>
         <button class="chapter-btn" onClick={() => setShowToc(true)} aria-label="Mở mục lục">
-          {ch?.title ?? book?.title ?? ''}
+          {chTitle || book?.title || ''}
         </button>
         <button class="icon-btn" aria-label="Mục lục" onClick={() => setShowToc(true)}><IconList /></button>
         <button class="icon-btn aa-btn" aria-label="Chỉnh hiển thị" aria-pressed={showDisplay} onClick={() => { setSel(null); setShowDisplay((v) => !v); }}>
@@ -191,8 +194,19 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
         ) : (
           ch && (
             <article lang="zh-Hant">
-              <h2 class="chapter-title">{ch.title}</h2>
-              {ch.paragraphs.map((text, i) => (
+              <h2 class="chapter-title">{chTitle}</h2>
+              {isTocPage(ch.title) ? (
+                // trang mục lục của file EPUB: thay bằng mục lục bấm được
+                <ul class="toc-list inline-toc">
+                  {titles.map((t, i) =>
+                    i === chapter ? null : (
+                      <li key={i}>
+                        <button onClick={() => goChapter(i)}>{t}</button>
+                      </li>
+                    ),
+                  )}
+                </ul>
+              ) : ch.paragraphs.map((text, i) => (
                 <Paragraph
                   key={`${chapter}-${i}`}
                   index={i}

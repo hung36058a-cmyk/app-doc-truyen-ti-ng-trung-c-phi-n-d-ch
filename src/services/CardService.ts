@@ -6,6 +6,7 @@ import { cardContentPrompt } from '@/modules/ai/prompts';
 import type { Dictionary } from '@/modules/dictionary/Dictionary';
 import { buildApkg, type SqlStatic } from '@/modules/anki/ApkgWriter';
 import { cardBackHtml, escapeHtml } from '@/modules/anki/cardHtml';
+import { buildAnkiText } from '@/modules/anki/ankiText';
 import { mergeHanviet } from './MeaningService';
 
 const MAX_PARALLEL = 3; // số thẻ AI tạo cùng lúc (nhiều quá dễ bị giới hạn lượt gọi)
@@ -65,6 +66,15 @@ export class CardService {
       }
     };
     await Promise.all(Array.from({ length: Math.min(MAX_PARALLEL, words.length) }, worker));
+  }
+
+  /** File .txt import vào Anki (note type Basic có sẵn của người dùng). */
+  exportTxt(words: SavedWord[], deckName: string): Blob {
+    const notes = words
+      .filter((w) => w.card)
+      .map((w) => ({ front: escapeHtml(w.word), back: cardBackHtml(w.word, w.sentence, w.card!) }));
+    const text = buildAnkiText(notes, { deckName, tags: ['doc-truyen'] });
+    return new Blob([text], { type: 'text/plain;charset=utf-8' });
   }
 
   /** Gói các từ đã có nội dung thẻ thành file .apkg. */

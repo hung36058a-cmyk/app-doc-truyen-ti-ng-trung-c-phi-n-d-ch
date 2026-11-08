@@ -10,11 +10,12 @@ import { CardEditor } from '../components/CardEditor';
 import { IconTrash } from '../icons';
 
 type Group = 'pending' | 'exported';
+type ExportFormat = 'txt' | 'apkg';
 type GenState = { status: 'loading' } | { status: 'error'; message: string };
 type ExportState =
   | { status: 'idle' }
   | { status: 'working' }
-  | { status: 'done'; count: number; filename: string; zipped: boolean }
+  | { status: 'done'; count: number; filename: string; format: ExportFormat; zipped: boolean }
   | { status: 'error'; message: string };
 
 export function VocabScreen({ settings }: { settings: AppSettings }) {
@@ -93,19 +94,20 @@ export function VocabScreen({ settings }: { settings: AppSettings }) {
   const failed = pending.filter((w) => gen[w.word]?.status === 'error');
   const shown = group === 'pending' ? pending : exported;
 
-  const doExport = async () => {
+  /** txt (mặc định): import vào note type Basic có sẵn · apkg: gói thẻ kèm note type riêng */
+  const doExport = async (format: ExportFormat) => {
     setExp({ status: 'working' });
     try {
       const deck = settings.ankiDeck.trim() || 'zhongwenB1';
-      const blob = await cards.exportApkg(ready, deck);
-      const zipped = await isClaudeHosted();
+      const blob = format === 'txt' ? cards.exportTxt(ready, deck) : await cards.exportApkg(ready, deck);
+      const zipped = format === 'apkg' && (await isClaudeHosted());
       const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '');
-      const filename = `${deck}-${stamp}.apkg${zipped ? '.zip' : ''}`;
+      const filename = `${deck}-${stamp}.${format}${zipped ? '.zip' : ''}`;
       await saveFile(filename, blob);
       const now = Date.now();
       for (const w of ready) await storage.words.save({ ...w, exported: true, exportedAt: now });
       await refresh();
-      setExp({ status: 'done', count: ready.length, filename, zipped });
+      setExp({ status: 'done', count: ready.length, filename, format, zipped });
     } catch (e) {
       if (e instanceof SaveCancelled) setExp({ status: 'idle' });
       else setExp({ status: 'error', message: (e as Error).message || 'Xuất file thất bại.' });
@@ -137,9 +139,11 @@ export function VocabScreen({ settings }: { settings: AppSettings }) {
       {exp.status === 'done' && group === 'pending' && (
         <div class="notice export-done" role="status">
           <strong>Đã xuất {exp.count} thẻ</strong> vào file {exp.filename}.
-          {exp.zipped
-            ? ' Vào ứng dụng Files, đổi tên file bỏ đuôi ".zip" cho còn ".apkg", rồi mở file bằng AnkiDroid để import.'
-            : ' Mở file bằng AnkiDroid để import.'}
+          {exp.format === 'txt'
+            ? ' Mở AnkiDroid → menu ⋮ → Nhập (Import) → chọn file này. Thẻ vào note type Basic, deck và cột đã được điền sẵn.'
+            : exp.zipped
+              ? ' Vào ứng dụng Files, đổi tên file bỏ đuôi ".zip" cho còn ".apkg", rồi mở file bằng AnkiDroid để import.'
+              : ' Mở file bằng AnkiDroid để import.'}
         </div>
       )}
       {exp.status === 'error' && <p class="notice notice-error" role="alert">{exp.message}</p>}
@@ -210,8 +214,11 @@ export function VocabScreen({ settings }: { settings: AppSettings }) {
 
       {group === 'pending' && pending.length > 0 && (
         <div class="export-bar">
-          <button class="btn btn-primary export-btn" disabled={ready.length === 0 || exp.status === 'working'} onClick={doExport}>
-            {exp.status === 'working' ? 'Đang tạo file…' : `Xuất ${ready.length} thẻ (.apkg)`}
+          <button class="btn btn-primary export-btn" disabled={ready.length === 0 || exp.status === 'working'} onClick={() => doExport('txt')}>
+            {exp.status === 'working' ? 'Đang tạo file…' : `Xuất ${ready.length} thẻ (.txt)`}
+          </button>
+          <button class="btn btn-ghost export-alt" disabled={ready.length === 0 || exp.status === 'working'} onClick={() => doExport('apkg')}>
+            Xuất dạng .apkg
           </button>
           <p class="meta">
             Deck: {settings.ankiDeck || 'zhongwenB1'}

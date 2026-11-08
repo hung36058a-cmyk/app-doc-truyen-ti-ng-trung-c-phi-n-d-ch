@@ -36,9 +36,9 @@ export function cardBackHtml(word: string, sentence: string, c: CardContent): st
   const pats = c.patterns.filter((p) => p.trim());
   if (pats.length) lines.push(`<br><div>${pats.map((p) => escapeHtml(p)).join('<br>')}</div>`);
   if (c.comparison.trim()) lines.push(`<br><div>${escapeHtml(c.comparison).replace(/\n/g, '<br>')}</div>`);
-  return lines.join('\n');
+  return lines.join('');
 }
 
 function exampleLine(zh: string, vi: string, word: string): string {
-  return `${boldWord(zh.trim(), word)}${vi.trim() ? ` <span style="color:#888">(${escapeHtml(vi.trim())})</span>` : ''}`;
+  return `${boldWord(zh.trim(), word)}${vi.trim() ? ` <span style='color:#888'>(${escapeHtml(vi.trim())})</span>` : ''}`;
 }

@@ -375,3 +375,7 @@ label.btn, label.add-tile { cursor: pointer; }
 .key-actions .icon-btn:disabled { opacity: 0.35; }
 .key-add { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--line); padding-top: 12px; }
 .key-add select { min-height: 44px; border-radius: 10px; border: 1px solid var(--line-strong); background: var(--bg); padding: 0 10px; }
+/* câu dài: không cho nút co lại trong khung cuộn (trước đây chữ tràn đè lên câu dưới) */
+.sentence-chip { flex-shrink: 0; height: auto; white-space: normal; }
+.inline-toc button { font-size: 17px; }
+.export-alt { min-height: 36px; font-size: 13px; color: var(--muted); }
