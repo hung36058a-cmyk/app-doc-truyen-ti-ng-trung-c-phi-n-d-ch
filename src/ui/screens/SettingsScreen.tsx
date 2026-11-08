@@ -4,6 +4,7 @@ import { useEffect, useState } from 'preact/hooks';
 import type { AppSettings, MeaningLang, ThemeMode } from '@/core/types';
 import { useServices } from '../context';
 import { AiKeysEditor } from '../components/AiKeysEditor';
+import { APP_VERSION, CHANGELOG } from '@/core/changelog';
 import type { DictState } from '../App';
 
 interface Props {
@@ -104,13 +105,28 @@ export function SettingsScreen({ settings, onChange, dictState }: Props) {
           </span>
           <span class="meta">{dictState === 'ready' ? 'Sẵn sàng' : dictState === 'loading' ? 'Đang tải…' : 'Lỗi tải'}</span>
         </div>
-        <div class="setting">
-          <span class="setting-label">
-            Phiên bản app
-            <small>Thời điểm bản app này được tạo. Chưa khớp bản mới thì tắt hẳn app, mở lại 2 lần.</small>
-          </span>
-          <span class="meta">{__BUILD__}</span>
-        </div>
+        <details class="setting version-info">
+          <summary>
+            <span class="setting-label">
+              Phiên bản app
+              <small>Bấm để xem ngày cập nhật và các thay đổi</small>
+            </span>
+            <span class="version-badge">v{APP_VERSION}</span>
+          </summary>
+          <div class="version-detail">
+            <p class="meta">
+              Cập nhật lên v{APP_VERSION} lúc <strong>{__BUILD__}</strong> (giờ Đài Loan). Không thấy bản mới thì tắt hẳn app, mở lại 2 lần.
+            </p>
+            <ol class="changelog">
+              {CHANGELOG.map((r) => (
+                <li key={r.version}>
+                  <div class="changelog-head"><strong>v{r.version}</strong><span class="meta">{r.date}</span></div>
+                  <ul>{r.notes.map((n, i) => <li key={i}>{n}</li>)}</ul>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </details>
         <div class="setting">
           <span class="setting-label">
             Nơi lưu
