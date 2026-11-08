@@ -39,6 +39,7 @@ export interface TranslationCache {
 export interface LookupRepo {
   list(): Set<string>;
   add(word: string): void;
+  clear(): void;
 }
 
 export interface SettingsRepo {

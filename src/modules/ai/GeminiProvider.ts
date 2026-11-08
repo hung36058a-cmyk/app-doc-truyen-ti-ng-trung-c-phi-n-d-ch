@@ -13,6 +13,18 @@ const MODELS: Record<'quick' | 'best', string[]> = {
 };
 const ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
 
+/**
+ * Mức "suy nghĩ" cho từng model. Flash 3.x mặc định nghĩ ở mức medium nên trả lời chậm (tra từ treo vài chục giây):
+ * mức quick ép nghĩ ít nhất mà model cho phép. Gemini 2.5 dùng thinkingBudget (0 = tắt).
+ * Mức best (Pro) để mặc định của model cho bản dịch tốt nhất.
+ */
+function thinkingConfig(model: string, quality: 'quick' | 'best'): Record<string, unknown> | undefined {
+  if (quality === 'best') return undefined;
+  if (model.startsWith('gemini-2.5')) return { thinkingBudget: 0 };
+  if (model === 'gemini-3-flash-preview') return { thinkingLevel: 'minimal' };
+  return { thinkingLevel: 'low' }; // 3.6 / 3.8 Flash không nhận 'minimal'
+}
+
 export class GeminiProvider implements AiProvider {
   /** Model gọi thành công gần nhất cho từng mức, để lần sau gọi thẳng. */
   private working: Partial<Record<'quick' | 'best', string>> = {};
@@ -35,7 +47,10 @@ export class GeminiProvider implements AiProvider {
         method: 'POST',
         signal: opts.signal,
         headers: { 'content-type': 'application/json', 'x-goog-api-key': this.key.trim() },
-        body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }] }),
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          ...(thinkingConfig(model, quality) && { generationConfig: { thinkingConfig: thinkingConfig(model, quality) } }),
+        }),
       });
       if (res.ok) {
         const data = (await res.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };

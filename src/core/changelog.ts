@@ -9,6 +9,15 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '2.2',
+    date: '09/11/2026',
+    notes: [
+      'Sửa tra từ chậm/treo: Gemini Flash được đặt mức suy nghĩ thấp nên nghĩa tiếng Việt về nhanh hơn nhiều',
+      'Bong bóng tra từ hiện ngay nghĩa tiếng Anh trong lúc chờ nghĩa Việt; chờ quá 25 giây thì báo lỗi thay vì quay mãi',
+      'Nút Aa: thêm "Gạch chân từ đã tra" Hiện / Ẩn và nút xóa gạch chân của các từ đã tra',
+    ],
+  },
+  {
     version: '2.1',
     date: '09/11/2026',
     notes: [

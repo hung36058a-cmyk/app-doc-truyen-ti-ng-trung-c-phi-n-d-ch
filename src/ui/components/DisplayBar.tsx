@@ -7,6 +7,8 @@ import { DEFAULT_SETTINGS } from '@/core/defaults';
 interface Props {
   value: ReaderDisplay;
   onChange: (patch: Partial<ReaderDisplay>) => void;
+  lookedCount: number; // số từ đã tra (đang được gạch chân)
+  onClearLooked: () => void;
   onClose: () => void;
 }
 
@@ -32,7 +34,7 @@ const PAPERS: { id: ReaderPaper; label: string }[] = [
 
 const round = (v: number) => Math.round(v * 10) / 10;
 
-export function DisplayBar({ value, onChange, onClose }: Props) {
+export function DisplayBar({ value, onChange, lookedCount, onClearLooked, onClose }: Props) {
   return (
     <>
       <button class="backdrop" aria-label="Đóng thanh chỉnh hiển thị" onClick={onClose} />
@@ -89,6 +91,19 @@ export function DisplayBar({ value, onChange, onClose }: Props) {
             ))}
           </div>
         </div>
+        <div class="choice-row" role="group" aria-label="Gạch chân từ đã tra">
+          <span>Gạch chân từ đã tra</span>
+          <div class="seg">
+            <button aria-pressed={value.showLooked} onClick={() => onChange({ showLooked: true })}>Hiện</button>
+            <button aria-pressed={!value.showLooked} onClick={() => onChange({ showLooked: false })}>Ẩn</button>
+          </div>
+        </div>
+        {lookedCount > 0 && (
+          <button class="btn btn-ghost clear-looked" onClick={onClearLooked}>
+            Xóa gạch chân của {lookedCount} từ đã tra
+          </button>
+        )}
+
         <div class="choice-row" role="group" aria-label="Chạm mép để lật trang">
           <span>Chạm mép để lật trang</span>
           <div class="seg">

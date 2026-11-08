@@ -578,3 +578,10 @@ label.btn, label.add-tile { cursor: pointer; }
 .ai-tier button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
 .trans-box { position: relative; }
 .trans-model { display: block; margin-top: 8px; font: 500 11px var(--font-ui); color: var(--faint); text-align: right; white-space: normal; }
+
+/* ---------- v2.2: nghĩa Anh hiện trước khi chờ AI, xóa gạch chân từ đã tra ---------- */
+.word-pop-en { color: var(--muted); font-size: 14px; }
+.word-pop-wait { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.word-pop-wait .skeleton { width: 40px; height: 10px; flex-shrink: 0; }
+.word-pop-note { margin-top: 2px; }
+.clear-looked { align-self: flex-start; min-height: 36px; padding: 0 4px; color: var(--accent); font-size: 14px; }

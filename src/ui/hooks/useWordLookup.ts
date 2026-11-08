@@ -11,6 +11,9 @@ export type VietState =
   | { status: 'done'; value: VietMeaning }
   | { status: 'error'; message: string };
 
+/** Chờ nghĩa Việt tối đa bấy nhiêu ms; quá thì báo lỗi (vẫn còn nghĩa Anh để xem). */
+const VIET_TIMEOUT = 25_000;
+
 export interface WordLookup {
   entry: DictEntry;
   viet: VietState;
@@ -34,10 +37,17 @@ export function useWordLookup(word: string, sentence: string, lang: MeaningLang)
     const needHv = entry.hanviet.includes('?');
     if (viet.status !== 'idle' || (lang !== 'vi' && !needHv)) return;
     setViet({ status: 'loading' });
+    const ctrl = new AbortController();
+    const timer = window.setTimeout(() => ctrl.abort(), VIET_TIMEOUT);
     meanings
-      .vietnamese(entry, sentence)
+      .vietnamese(entry, sentence, ctrl.signal)
       .then((value) => mounted.current && setViet({ status: 'done', value }))
-      .catch((e: Error) => mounted.current && setViet({ status: 'error', message: e.message }));
+      .catch((e: Error) => {
+        if (!mounted.current) return;
+        const message = ctrl.signal.aborted ? 'AI trả lời quá lâu, thử chạm lại từ này.' : e.message;
+        setViet({ status: 'error', message });
+      })
+      .finally(() => window.clearTimeout(timer));
   }, [lang]);
 
   const vietValue = viet.status === 'done' ? viet.value : null;

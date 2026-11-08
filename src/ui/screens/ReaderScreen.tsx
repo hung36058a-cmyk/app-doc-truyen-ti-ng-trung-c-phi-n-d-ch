@@ -38,6 +38,8 @@ interface Selection {
   expanded: boolean; // false = bong bóng nhỏ cạnh từ, true = bảng đầy đủ ở đáy màn hình
 }
 
+const NO_WORDS: Set<string> = new Set();
+
 /** Chạm trong phần này (tính từ mỗi mép, theo bề ngang) thì lật trang thay vì hiện/ẩn thanh tiêu đề. */
 const EDGE_ZONE = 0.3;
 /** Khi lật trang, giữ lại bấy nhiêu px của trang trước để không mất dòng. */
@@ -298,7 +300,7 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
                   text={text}
                   segmenter={segmenter}
                   saved={saved}
-                  looked={looked}
+                  looked={d.showLooked ? looked : NO_WORDS}
                   selectedToken={sel?.para === i ? sel.token : null}
                   hlStart={trans?.para === i ? (trans.mode === 'paragraph' ? 0 : transSpans[trans.sentence]?.start ?? -1) : -1}
                   hlEnd={trans?.para === i ? (trans.mode === 'paragraph' ? Infinity : transSpans[trans.sentence]?.end ?? -1) : -1}
@@ -368,7 +370,15 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
         />
       )}
 
-      {showDisplay && <DisplayBar value={d} onChange={setDisplay} onClose={() => setShowDisplay(false)} />}
+      {showDisplay && (
+        <DisplayBar
+          value={d}
+          onChange={setDisplay}
+          lookedCount={looked.size}
+          onClearLooked={() => { storage.lookups.clear(); setLooked(new Set()); }}
+          onClose={() => setShowDisplay(false)}
+        />
+      )}
 
       {showToc && book && (
         <TocSheet toc={book.toc} current={chapter} onPick={goChapter} onClose={() => setShowToc(false)} />

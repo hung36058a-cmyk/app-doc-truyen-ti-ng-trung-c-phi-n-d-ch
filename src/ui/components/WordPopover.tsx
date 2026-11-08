@@ -96,6 +96,19 @@ function ShortMeaning({ look, lang }: { look: WordLookup; lang: MeaningLang }) {
   const english = look.entry.senses[0]?.english.slice(0, 3).join('; ');
   if (lang === 'en') return <>{english || <span class="meta">Không có trong từ điển.</span>}</>;
   if (look.viet.status === 'done') return <>{look.viet.value.meaning}</>;
-  if (look.viet.status === 'error') return <>{english || <span class="meta">{look.viet.message}</span>}</>;
-  return <div class="skeleton" aria-label="Đang lấy nghĩa tiếng Việt" />;
+  if (look.viet.status === 'error') {
+    return (
+      <>
+        {english && <div>{english}</div>}
+        <div class="meta word-pop-note">{look.viet.message}</div>
+      </>
+    );
+  }
+  // trong lúc chờ AI: hiện trước nghĩa Anh của từ điển để không phải nhìn khung trống
+  return (
+    <>
+      {english && <div class="word-pop-en">{english}</div>}
+      <div class="word-pop-wait"><span class="skeleton" /> <span class="meta">đang dịch tiếng Việt…</span></div>
+    </>
+  );
 }

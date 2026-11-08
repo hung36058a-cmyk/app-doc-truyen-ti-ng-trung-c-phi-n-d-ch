@@ -98,6 +98,13 @@ export function createDexieStorage(): Storage {
           /* trình duyệt chặn lưu: chỉ nhớ trong phiên này */
         }
       },
+      clear() {
+        try {
+          localStorage.removeItem(LOOKUPS_KEY);
+        } catch {
+          /* bỏ qua */
+        }
+      },
     },
     settings: {
       load() {
