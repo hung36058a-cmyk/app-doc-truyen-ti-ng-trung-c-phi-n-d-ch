@@ -1,6 +1,10 @@
-// services/sentence.ts — Cắt ra câu chứa vị trí từ được chạm trong một đoạn văn.
+// services/sentence.ts — Cắt câu trong một đoạn văn.
+// - sentenceAt: câu ĐẦY ĐỦ (tới dấu chấm) chứa từ được chạm — làm ngữ cảnh cho AI giải nghĩa từ.
+// - splitSentences: chia nhỏ theo cả dấu phẩy / hai chấm để dịch từng vế ngắn trong khung dịch câu.
 
 const ENDERS = /[。！？!?；…]/;
+/** Dấu ngắt vế: một vế kết thúc ở các dấu này cũng tính là một "câu" khi dịch. Không gồm 、(liệt kê). */
+const CLAUSE_ENDERS = /[。！？!?；…，,：:]/;
 const CLOSERS = /[」』"”）)]/;
 
 /** offset = vị trí (theo ký tự) của từ trong đoạn. */
@@ -20,16 +24,17 @@ export interface SentenceSpan {
   end: number; // vị trí ký tự kết thúc (không gồm)
 }
 
-/** Cắt đoạn thành từng câu. Dấu đóng ngoặc ngay sau dấu kết câu (。」) thuộc về câu trước. */
+/** Cắt đoạn thành từng vế (ngắt ở dấu chấm, chấm than, hỏi, chấm phẩy, phẩy, hai chấm).
+ *  Dấu đóng ngoặc ngay sau dấu ngắt (。」) thuộc về vế trước. */
 export function splitSentences(paragraph: string): SentenceSpan[] {
   const chars = [...paragraph];
   const out: SentenceSpan[] = [];
   let start = 0;
   let i = 0;
   while (i < chars.length) {
-    if (ENDERS.test(chars[i])) {
+    if (CLAUSE_ENDERS.test(chars[i])) {
       let end = i + 1;
-      while (end < chars.length && (ENDERS.test(chars[end]) || CLOSERS.test(chars[end]))) end++;
+      while (end < chars.length && (CLAUSE_ENDERS.test(chars[end]) || CLOSERS.test(chars[end]))) end++;
       out.push({ text: chars.slice(start, end).join(''), start, end });
       start = end;
       i = end;

@@ -604,3 +604,13 @@ label.btn, label.add-tile { cursor: pointer; }
 .tier-switch[aria-checked="true"] .tier-track { background: var(--accent); }
 .tier-switch[aria-checked="true"] .tier-thumb { transform: translateX(10px); }
 .word-pop-head .tier-switch { margin-left: auto; }
+
+/* ---------- v2.5: khung dịch không bị đè chữ khi bản dịch dài ---------- */
+/* .sheet là cột flex có max-height: các khối con không được co lại, nếu không bản dịch dài tràn đè lên nút */
+.sheet > * { flex-shrink: 0; }
+/* nút chuyển câu / Dịch cả đoạn luôn nằm ở đáy khung, không bị đẩy xuống khi bản dịch dài */
+.trans-actions {
+  position: sticky; bottom: calc(-20px - env(safe-area-inset-bottom, 0px)); z-index: 1;
+  margin: 0 -20px calc(-20px - env(safe-area-inset-bottom, 0px)); padding: 10px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+  background: var(--surface); box-shadow: 0 -8px 12px -8px rgba(0, 0, 0, 0.25);
+}

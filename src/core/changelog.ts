@@ -9,6 +9,14 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '2.5',
+    date: '09/11/2026',
+    notes: [
+      'Sửa lỗi bản dịch dài tràn ra ngoài khung, đè lên nút "Dịch cả đoạn": khung dịch giờ cuộn được, các nút ‹ Dịch cả đoạn › luôn nằm ở đáy',
+      'Dịch câu: mỗi vế ngăn bằng dấu phẩy (，) hoặc hai chấm (：) cũng tính là một câu; dấu 、 (liệt kê) không cắt',
+    ],
+  },
+  {
     version: '2.4',
     date: '09/11/2026',
     notes: [
