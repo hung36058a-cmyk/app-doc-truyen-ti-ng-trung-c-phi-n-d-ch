@@ -53,11 +53,20 @@ export interface DictEntry {
   hanviet: string; // "xưng hô"; chữ không có dữ liệu được ghi là "?"
 }
 
+/** Một từ nhỏ nằm trong cụm (collocation), ví dụ 汗毛 trong 汗毛直立. */
+export interface PhrasePart {
+  text: string;
+  meaning: string;
+}
+
 /** Nghĩa tiếng Việt do AI tạo, được lưu cache. */
 export interface VietMeaning {
-  meaning: string; // nghĩa tiếng Việt ngắn gọn
+  meaning: string; // nghĩa tiếng Việt ngắn gọn (của cả cụm nếu có cụm)
   partOfSpeech: string; // từ loại bằng tiếng Việt
-  hanviet?: string; // âm Hán Việt AI bổ sung khi từ điển thiếu
+  hanviet?: string; // âm Hán Việt AI bổ sung khi từ điển thiếu (của cả cụm nếu có cụm)
+  phrase?: string; // cụm chứa từ vừa chạm (vd 汗毛直立); không có hoặc bằng chính từ = không có cụm
+  pinyin?: string; // pinyin của cả cụm, dùng khi từ điển offline không có cụm đó
+  parts?: PhrasePart[]; // các từ nhỏ ghép nên cụm, theo thứ tự (rỗng nếu không có cụm)
 }
 
 /** Một đơn vị sau khi tách từ. isWord = false cho dấu câu, khoảng trắng, chữ Latin. */

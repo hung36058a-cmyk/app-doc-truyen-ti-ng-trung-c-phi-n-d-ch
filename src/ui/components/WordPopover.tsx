@@ -2,21 +2,24 @@
 // từ, pinyin · Hán Việt, nghĩa ngắn, nút Lưu / Nghe / Chi tiết. Không che trang như bảng đầy đủ,
 // nên tra nhiều từ liên tiếp không mất mạch đọc. "Chi tiết" mở bảng đầy đủ (WordSheet).
 
-import { useLayoutEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import type { AiMode, DictEntry, MeaningLang, VietMeaning } from '@/core/types';
 import { canSpeak, speak } from '@/modules/speech/speak';
 import { useWordLookup, type WordLookup } from '../hooks/useWordLookup';
 import { IconSpeaker, IconStar } from '../icons';
 import { AiTierToggle } from './AiTierToggle';
+import { PhraseParts } from './PhraseParts';
 
 interface Props {
   word: string;
   sentence: string;
   anchor: () => HTMLElement | null; // từ đang chọn trên trang, để đặt bong bóng cạnh nó
-  isSaved: boolean;
+  exact: boolean; // true = tra đúng từ này, không nhận cụm
+  isSaved: (word: string) => boolean; // hỏi theo từ HOẶC cụm đang hiện
   lang: MeaningLang;
   onSave: (entry: DictEntry, viet: VietMeaning | null) => void;
-  onUnsave: () => void;
+  onUnsave: (word: string) => void;
+  onPhrase: (phrase: string | null) => void; // báo cho trang đọc biết cụm AI nhận ra, để tô sáng cả cụm
   aiMode: AiMode; // 'save' = Dịch tự động, 'quality' = Dịch nâng cao
   onAiMode: (m: AiMode) => void;
   onExpand: () => void;
@@ -31,7 +34,10 @@ const TOP_SAFE = 64;
 interface Place { top: number; left: number; arrow: number; below: boolean }
 
 export function WordPopover(p: Props) {
-  const look = useWordLookup(p.word, p.sentence, p.lang, p.aiMode);
+  const look = useWordLookup(p.word, p.sentence, p.lang, p.aiMode, p.exact);
+  const hasPhrase = look.phrase !== p.word;
+  const onPhrase = p.onPhrase;
+  useEffect(() => { onPhrase(hasPhrase ? look.phrase : null); }, [look.phrase]);
   const box = useRef<HTMLDivElement>(null);
   const [place, setPlace] = useState<Place | null>(null);
 
@@ -59,7 +65,7 @@ export function WordPopover(p: Props) {
       ref={box}
       class={`word-pop${place?.below ? ' is-below' : ''}`}
       role="dialog"
-      aria-label={`Nghĩa của ${p.word}`}
+      aria-label={`Nghĩa của ${look.phrase}`}
       style={{
         top: `${place?.top ?? -9999}px`,
         left: `${place?.left ?? 0}px`,
@@ -69,21 +75,22 @@ export function WordPopover(p: Props) {
       onClick={(e) => e.stopPropagation()}
     >
       <div class="word-pop-head">
-        <span class="word-pop-word" lang="zh-Hant">{p.word}</span>
+        <span class="word-pop-word" lang="zh-Hant">{look.phrase}</span>
         <span class="word-pop-reading">
           {look.pinyins[0] || '—'} <span class="word-pop-hv">[{look.hanviet}]</span>
         </span>
         <AiTierToggle value={p.aiMode} onChange={p.onAiMode} />
         {canSpeak() && (
-          <button class="icon-btn word-pop-icon" aria-label="Nghe phát âm" onClick={() => speak(p.word)}>
+          <button class="icon-btn word-pop-icon" aria-label="Nghe phát âm" onClick={() => speak(look.phrase)}>
             <IconSpeaker size={18} />
           </button>
         )}
       </div>
       <div class="word-pop-meaning" aria-live="polite"><ShortMeaning look={look} lang={p.lang} /></div>
+      <PhraseParts parts={look.parts} />
       <div class="word-pop-actions">
-        {p.isSaved ? (
-          <button class="btn word-pop-saved" onClick={p.onUnsave}><IconStar size={16} filled /> Đã lưu</button>
+        {p.isSaved(look.phrase) ? (
+          <button class="btn word-pop-saved" onClick={() => p.onUnsave(look.phrase)}><IconStar size={16} filled /> Đã lưu</button>
         ) : (
           <button class="btn btn-primary" onClick={() => p.onSave({ ...look.entry, hanviet: look.hanviet }, look.vietValue)}>
             <IconStar size={16} /> Lưu

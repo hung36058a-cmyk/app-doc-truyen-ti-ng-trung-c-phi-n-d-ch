@@ -5,6 +5,7 @@ import type { Dictionary } from '@/modules/dictionary/Dictionary';
 import { extractJson, type AiProvider } from '@/modules/ai/AiProvider';
 import { vietMeaningPrompt } from '@/modules/ai/prompts';
 import type { MeaningCache } from '@/modules/storage/Storage';
+import { isValidPhrase, validParts } from './phrase';
 
 export class MeaningService {
   constructor(
@@ -19,25 +20,34 @@ export class MeaningService {
   }
 
   /**
-   * Nghĩa tiếng Việt theo ngữ cảnh. Mỗi cặp (từ, câu) chỉ gọi AI một lần cho mỗi mức.
+   * Nghĩa tiếng Việt theo ngữ cảnh + nhận ra cụm (collocation) chứa từ trong câu.
+   * Mỗi bộ (từ, câu) chỉ gọi AI một lần cho mỗi mức; cụm phụ thuộc câu nên cache theo cả câu.
    * mode 'save' = Dịch tự động (Gemini Flash), 'quality' = Dịch nâng cao (Gemini Pro); cache riêng từng mức.
+   * exact = true: tra đúng từ này, không mở rộng thành cụm (khi người dùng bấm một từ nhỏ trong cụm).
    */
-  async vietnamese(entry: DictEntry, sentence: string, mode: AiMode = 'save', signal?: AbortSignal): Promise<VietMeaning> {
-    const pro = mode === 'quality' ? 'pro|' : ''; // khóa cũ giữ nguyên cho Dịch tự động
-    const key = `${pro}${entry.word}|${sentence}`;
-    const cached = (await this.cache.get(key)) ?? (await this.cache.get(`${pro}${entry.word}|`));
+  async vietnamese(entry: DictEntry, sentence: string, mode: AiMode = 'save', signal?: AbortSignal, exact = false): Promise<VietMeaning> {
+    const key = `p2|${mode === 'quality' ? 'pro|' : ''}${exact ? 'x|' : ''}${entry.word}|${sentence}`;
+    const cached = await this.cache.get(key);
     if (cached) return cached;
 
     const hint = entry.senses[0]?.english.slice(0, 4).join('; ') ?? '';
-    const text = await this.ai.complete(vietMeaningPrompt(entry.word, sentence, hint), { quality: mode === 'quality' ? 'best' : 'quick', signal });
+    const text = await this.ai.complete(vietMeaningPrompt(entry.word, sentence, hint, exact), { quality: mode === 'quality' ? 'best' : 'quick', signal });
     const parsed = extractJson<VietMeaning>(text);
+
+    // AI có thể trả cụm sai (không có trong câu / không chứa từ chạm): khi đó coi như không có cụm
+    const rawPhrase = String(parsed.phrase ?? '').trim();
+    const phrase = !exact && isValidPhrase(rawPhrase, entry.word, sentence) ? rawPhrase : undefined;
+    const parts = phrase ? validParts(parsed.parts, phrase) : [];
+    const pinyin = String(parsed.pinyin ?? '').trim();
     const value: VietMeaning = {
       meaning: String(parsed.meaning ?? '').trim(),
       partOfSpeech: String(parsed.partOfSpeech ?? '').trim(),
       hanviet: parsed.hanviet ? String(parsed.hanviet).trim().toLowerCase() : undefined,
+      phrase,
+      pinyin: pinyin || undefined,
+      parts: parts.length ? parts : undefined,
     };
     await this.cache.set(key, value);
-    await this.cache.set(`${pro}${entry.word}|`, value); // bản dự phòng không phụ thuộc câu
     return value;
   }
 }

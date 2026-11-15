@@ -9,6 +9,16 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '2.8',
+    date: '15/11/2026',
+    notes: [
+      'Tra cụm từ (collocation): chạm vào một từ, nếu từ đó nằm trong cụm cố định/thành ngữ thì bong bóng hiện cả cụm (vd 汗毛直立 = lông tơ dựng đứng), bên dưới là từng từ nhỏ kèm nghĩa (汗毛 = lông tơ · 直立 = dựng đứng). Cả cụm được tô sáng trên trang',
+      'Lưu từ khi đang xem cụm thì lưu cả cụm (vào Anki cũng cả cụm). Trong bảng Chi tiết, bấm một từ nhỏ để tra riêng từ đó',
+      'Cụm chỉ nhận ra khi xem nghĩa Tiếng Việt (VI); xem Tiếng Anh vẫn tra đúng từ vừa chạm',
+      'Bấm giữ để dịch câu không còn làm điện thoại rung',
+    ],
+  },
+  {
     version: '2.7',
     date: '15/11/2026',
     notes: [

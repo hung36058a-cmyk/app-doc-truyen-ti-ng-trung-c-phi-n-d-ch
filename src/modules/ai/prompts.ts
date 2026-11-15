@@ -65,14 +65,33 @@ Trả về DUY NHẤT một JSON, không giải thích:
  "comparison": ["từ A (giải thích)", "từ B (giải thích)"]}`;
 }
 
-export function vietMeaningPrompt(word: string, sentence: string, englishHint: string): string {
+/**
+ * Giải nghĩa MỘT từ vừa chạm, đồng thời nhận ra cụm cố định (collocation) chứa từ đó trong câu.
+ * exact = true: người dùng chủ ý tra đúng từ này (bấm từ nhỏ trong cụm) nên KHÔNG mở rộng thành cụm.
+ */
+export function vietMeaningPrompt(word: string, sentence: string, englishHint: string, exact = false): string {
+  const phraseRule = exact
+    ? `Chỉ giải nghĩa đúng "${word}", KHÔNG mở rộng thành cụm: "phrase" = "${word}", "parts" = [].`
+    : `1) Tìm cụm: trong câu trên, "${word}" có nằm trong một CỤM CỐ ĐỊNH (collocation) không? Gồm thành ngữ, cụm 4 chữ,
+   cụm động từ + tân ngữ quen dùng, cụm hay đi liền nhau mà nghĩa của cả cụm khác hoặc tự nhiên hơn nghĩa cộng từng từ
+   (ví dụ 汗毛直立, 頭皮發麻, 哭笑不得, 騙吃騙喝). Nếu có: "phrase" = cả cụm, PHẢI là chuỗi chữ liền nhau y hệt trong câu và
+   chứa "${word}". Nếu không: "phrase" = "${word}". Không mở rộng thành cả mệnh đề hay cả câu.
+2) "meaning" = nghĩa của "phrase" (cả cụm) theo ngữ cảnh.
+3) "parts": nếu "phrase" gồm từ 2 từ nhỏ trở lên thì liệt kê từng từ nhỏ theo thứ tự, ghép lại PHẢI đúng bằng "phrase",
+   mỗi từ kèm nghĩa ngắn (tối đa 6 từ). Ví dụ 汗毛直立 → [{"text":"汗毛","meaning":"lông tơ"},{"text":"直立","meaning":"dựng đứng"}].
+   Nếu "phrase" chỉ là một từ: "parts" = [].`;
   return `Bạn là từ điển Trung–Việt cho người Việt học tiếng Trung phồn thể.
-Từ cần giải nghĩa: ${word}
+Từ người học vừa chạm: ${word}
 Câu chứa từ (để chọn đúng nghĩa theo ngữ cảnh): ${sentence}
-Gợi ý nghĩa tiếng Anh từ CC-CEDICT: ${englishHint || '(không có)'}
+Gợi ý nghĩa tiếng Anh của riêng "${word}" từ CC-CEDICT: ${englishHint || '(không có)'}
+
+${phraseRule}
 
 Trả về DUY NHẤT một JSON, không giải thích thêm:
-{"meaning": "nghĩa tiếng Việt ngắn gọn, đúng ngữ cảnh câu trên, tối đa 15 từ",
- "partOfSpeech": "từ loại bằng tiếng Việt, ví dụ: danh từ, động từ, tính từ",
- "hanviet": "âm Hán Việt của từng chữ, cách nhau bằng dấu cách, viết thường"}`;
+{"phrase": "cụm (hoặc chính từ nếu không có cụm)",
+ "pinyin": "pinyin có dấu thanh của phrase, các âm tiết cách nhau bằng dấu cách",
+ "meaning": "nghĩa tiếng Việt ngắn gọn của phrase, đúng ngữ cảnh câu trên, tối đa 15 từ",
+ "partOfSpeech": "từ loại bằng tiếng Việt, ví dụ: danh từ, động từ, tính từ, thành ngữ",
+ "hanviet": "âm Hán Việt của từng chữ trong phrase, cách nhau bằng dấu cách, viết thường",
+ "parts": [{"text": "từ nhỏ", "meaning": "nghĩa ngắn"}]}`;
 }

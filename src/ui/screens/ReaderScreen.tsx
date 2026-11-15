@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { AppSettings, Book, DictEntry, ReaderDisplay, SavedWord, VietMeaning } from '@/core/types';
 import { sentenceAt, splitSentences } from '@/services/sentence';
+import { highlightRange } from '@/services/phrase';
 import { useServices } from '../context';
 import { Paragraph } from '../components/Paragraph';
 import { WordSheet } from '../components/WordSheet';
@@ -34,7 +35,11 @@ interface Props {
 interface Selection {
   para: number;
   token: number;
-  word: string; // từ đang xem trong popup (có thể là 1 chữ con khi tra từng chữ)
+  start: number; // vị trí ký tự của từ vừa chạm trong đoạn (-1 = không gắn với trang, vd mở từ đã lưu)
+  end: number;
+  word: string; // từ đang xem trong popup (có thể là từ nhỏ / 1 chữ khi tra riêng)
+  exact: boolean; // true = tra đúng từ này, không nhận cụm
+  phrase?: string; // cụm AI nhận ra chứa từ vừa chạm (để tô sáng cả cụm)
   sentence: string;
   expanded: boolean; // false = bong bóng nhỏ cạnh từ, true = bảng đầy đủ ở đáy màn hình
 }
@@ -163,7 +168,7 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
     (para: number, token: number, word: string, offset: number) => {
       if (!book) return;
       const text = book.chapters[chapter].paragraphs[para];
-      setSel({ para, token, word, sentence: sentenceAt(text, offset), expanded: false });
+      setSel({ para, token, start: offset, end: offset + [...word].length, word, exact: false, sentence: sentenceAt(text, offset), expanded: false });
       setChrome(true); // chạm vào chữ giữa trang cũng hiện thanh tiêu đề (có nút Aa)
       storage.lookups.add(word);
       setLooked((prev) => (prev.has(word) ? prev : new Set(prev).add(word)));
@@ -175,8 +180,8 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
     if (!book || !sel) return;
     const first = entry.senses[0];
     const w: SavedWord = {
-      word: entry.word,
-      pinyin: first?.pinyin ?? '',
+      word: entry.word, // nếu AI nhận ra cụm thì đây là cả cụm
+      pinyin: first?.pinyin ?? viet?.pinyin ?? '',
       hanviet: entry.hanviet,
       english: first ? first.english.slice(0, 4).join('; ') : '',
       vietnamese: viet?.meaning ?? '',
@@ -236,7 +241,7 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
   /** Chạm một từ trên thẻ cuối chương: mở bảng đầy đủ với câu gốc đã lưu. */
   const openSavedWord = (word: string) => {
     const w = savedList.find((x) => x.word === word);
-    setSel({ para: -1, token: -1, word, sentence: w?.sentence ?? '', expanded: true });
+    setSel({ para: -1, token: -1, start: -1, end: -1, word, exact: true, sentence: w?.sentence ?? '', expanded: true });
   };
 
   const setDisplay = (patch: Partial<ReaderDisplay>) => onSettings({ reader: { ...settings.reader, ...patch } });
@@ -265,6 +270,9 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
   const savedHere = book ? savedList.filter((w) => w.bookId === book.id && w.chapterIndex === chapter).map((w) => w.word) : [];
   const transText = trans && ch ? ch.paragraphs[trans.para] : '';
   const transSpans = useMemo(() => splitSentences(transText), [transText]);
+  // khoảng ký tự tô sáng khi tra từ: cả cụm nếu AI nhận ra, không thì từ vừa chạm
+  const selText = sel && sel.para >= 0 && book ? book.chapters[chapter].paragraphs[sel.para] ?? '' : '';
+  const selRange = sel && sel.start >= 0 ? highlightRange(selText, sel.start, sel.end, sel.phrase) : [-1, -1];
 
   return (
     <div class="reader" data-paper={d.paper} data-font={d.font} style={displayVars}>
@@ -316,7 +324,8 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
                   segmenter={segmenter}
                   saved={saved}
                   looked={d.showLooked ? looked : NO_WORDS}
-                  selectedToken={sel?.para === i ? sel.token : null}
+                  selStart={sel?.para === i ? selRange[0] : -1}
+                  selEnd={sel?.para === i ? selRange[1] : -1}
                   hlStart={trans?.para === i ? (trans.mode === 'paragraph' ? 0 : transSpans[trans.sentence]?.start ?? -1) : -1}
                   hlEnd={trans?.para === i ? (trans.mode === 'paragraph' ? Infinity : transSpans[trans.sentence]?.end ?? -1) : -1}
                   onTap={onTap}
@@ -347,7 +356,7 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
           mode={trans.mode}
           onMode={(mode) => setTrans({ ...trans, mode })}
           onMove={(d) => setTrans({ ...trans, sentence: trans.sentence + d })}
-          onPickWord={(word, at) => setSel({ para: trans.para, token: tokenAt(transText, at), word, sentence: transSpans[trans.sentence].text, expanded: true })}
+          onPickWord={(word, at) => setSel({ para: trans.para, token: tokenAt(transText, at), start: at, end: at + [...word].length, word, exact: false, sentence: transSpans[trans.sentence].text, expanded: true })}
           lang={settings.meaningLang}
           onLang={(l) => onSettings({ meaningLang: l })}
           aiMode={settings.aiMode}
@@ -358,14 +367,16 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
 
       {sel && !sel.expanded && (
         <WordPopover
-          key={`${sel.para}|${sel.token}|${sel.word}`}
+          key={`${sel.para}|${sel.token}|${sel.word}|${sel.exact}`}
           word={sel.word}
           sentence={sel.sentence}
           anchor={selAnchor}
-          isSaved={saved.has(sel.word)}
+          exact={sel.exact}
+          isSaved={(w) => saved.has(w)}
           lang={settings.meaningLang}
           onSave={saveWord}
-          onUnsave={() => unsaveWord(sel.word)}
+          onUnsave={unsaveWord}
+          onPhrase={(phrase) => setSel((s) => (s && s.phrase !== (phrase ?? undefined) ? { ...s, phrase: phrase ?? undefined } : s))}
           onExpand={() => setSel({ ...sel, expanded: true })}
           aiMode={settings.aiMode}
           onAiMode={(m) => onSettings({ aiMode: m })}
@@ -374,15 +385,16 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
 
       {sel && sel.expanded && (
         <WordSheet
-          key={`${sel.word}|${sel.sentence}`}
+          key={`${sel.word}|${sel.exact}|${sel.sentence}`}
           word={sel.word}
           sentence={sel.sentence}
-          isSaved={saved.has(sel.word)}
+          exact={sel.exact}
+          isSaved={(w) => saved.has(w)}
           lang={settings.meaningLang}
           onLang={(l) => onSettings({ meaningLang: l })}
           onSave={saveWord}
-          onUnsave={() => unsaveWord(sel.word)}
-          onPick={(w) => setSel({ ...sel, word: w })}
+          onUnsave={unsaveWord}
+          onPick={(w) => setSel({ ...sel, word: w, exact: true })}
           aiMode={settings.aiMode}
           onAiMode={(m) => onSettings({ aiMode: m })}
           onClose={() => setSel(null)}

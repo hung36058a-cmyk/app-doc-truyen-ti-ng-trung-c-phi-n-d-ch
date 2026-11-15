@@ -6,33 +6,35 @@ import { canSpeak, speak } from '@/modules/speech/speak';
 import { useWordLookup, type VietState } from '../hooks/useWordLookup';
 import { IconSpeaker, IconStar } from '../icons';
 import { AiTierToggle } from './AiTierToggle';
+import { PhraseParts } from './PhraseParts';
 
 interface Props {
   word: string;
   sentence: string;
-  isSaved: boolean;
+  exact: boolean; // true = tra đúng từ này, không nhận cụm
+  isSaved: (word: string) => boolean; // hỏi theo từ HOẶC cụm đang hiện
   lang: MeaningLang;
   onLang: (l: MeaningLang) => void;
   onSave: (entry: DictEntry, viet: VietMeaning | null) => void;
-  onUnsave: () => void;
+  onUnsave: (word: string) => void;
   aiMode: AiMode; // 'save' = Dịch tự động, 'quality' = Dịch nâng cao
   onAiMode: (m: AiMode) => void;
-  onPick: (word: string) => void;
+  onPick: (word: string) => void; // tra riêng một từ nhỏ / một chữ (không nhận cụm)
   onClose: () => void;
 }
 
 export function WordSheet(p: Props) {
-  const { entry, viet, vietValue, hanviet, pinyins } = useWordLookup(p.word, p.sentence, p.lang, p.aiMode);
-  const chars = [...p.word];
+  const { phrase, parts, entry, viet, vietValue, hanviet, pinyins } = useWordLookup(p.word, p.sentence, p.lang, p.aiMode, p.exact);
+  const chars = [...phrase];
 
   return (
     <>
       <button class="backdrop" aria-label="Đóng popup" onClick={p.onClose} />
-      <section class="sheet" role="dialog" aria-label={`Nghĩa của ${p.word}`}>
+      <section class="sheet" role="dialog" aria-label={`Nghĩa của ${phrase}`}>
         <div class="grip" aria-hidden="true" />
         <div class="sheet-top">
           <div>
-            <div class="sheet-word">{p.word}</div>
+            <div class="sheet-word">{phrase}</div>
             <div class="sheet-reading">
               {pinyins.join(' / ') || '—'} · [{hanviet}]
             </div>
@@ -50,7 +52,9 @@ export function WordSheet(p: Props) {
           {p.lang === 'vi' ? <VietBlock state={viet} /> : <EnglishBlock entry={entry} />}
         </div>
 
-        {chars.length > 1 && (
+        <PhraseParts parts={parts} onPick={p.onPick} />
+
+        {chars.length > 1 && parts.length === 0 && (
           <div class="char-chips" aria-label="Tra từng chữ">
             {chars.map((c, i) => (
               <button key={i} class="chip" onClick={() => p.onPick(c)}>{c}</button>
@@ -59,8 +63,8 @@ export function WordSheet(p: Props) {
         )}
 
         <div class="sheet-actions">
-          {p.isSaved ? (
-            <button class="btn" style={{ flex: 1, height: '48px' }} onClick={p.onUnsave}>
+          {p.isSaved(phrase) ? (
+            <button class="btn" style={{ flex: 1, height: '48px' }} onClick={() => p.onUnsave(phrase)}>
               <IconStar filled /> Đã lưu · Bỏ lưu
             </button>
           ) : (
@@ -69,7 +73,7 @@ export function WordSheet(p: Props) {
             </button>
           )}
           {canSpeak() && (
-            <button class="icon-btn" aria-label="Nghe phát âm" onClick={() => speak(p.word)}>
+            <button class="icon-btn" aria-label="Nghe phát âm" onClick={() => speak(phrase)}>
               <IconSpeaker />
             </button>
           )}

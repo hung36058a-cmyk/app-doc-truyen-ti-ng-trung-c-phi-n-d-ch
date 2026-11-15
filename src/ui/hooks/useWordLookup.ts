@@ -2,7 +2,7 @@
 // Dùng chung cho popup nhỏ (WordPopover) và bảng đầy đủ (WordSheet), để hai nơi luôn hiện cùng một nội dung.
 
 import { useEffect, useRef, useState } from 'preact/hooks';
-import type { AiMode, DictEntry, MeaningLang, VietMeaning } from '@/core/types';
+import type { AiMode, DictEntry, MeaningLang, PhrasePart, VietMeaning } from '@/core/types';
 import { mergeHanviet } from '@/services/MeaningService';
 import { useServices } from '../context';
 
@@ -14,8 +14,13 @@ export type VietState =
 /** Chờ nghĩa Việt tối đa bấy nhiêu ms; quá thì báo lỗi (vẫn còn nghĩa Anh để xem). */
 const VIET_TIMEOUT = 25_000;
 
+/** Kết quả AI đã có trong phiên này: mở bong bóng -> bảng đầy đủ không phải chờ lại, cụm không nhấp nháy. */
+const sessionMemo = new Map<string, VietMeaning>();
+
 export interface WordLookup {
-  entry: DictEntry;
+  phrase: string; // cụm chứa từ vừa chạm (nếu AI nhận ra), không thì chính từ đó
+  parts: PhrasePart[]; // từ nhỏ trong cụm, kèm nghĩa; rỗng nếu không có cụm
+  entry: DictEntry; // của cả cụm
   viet: VietState;
   vietValue: VietMeaning | null;
   hanviet: string;
@@ -25,28 +30,37 @@ export interface WordLookup {
 /**
  * Lấy nghĩa Việt khi đang xem tiếng Việt, hoặc khi cần bù âm Hán Việt còn thiếu.
  * Component dùng hook này nên được gắn key theo từ + câu, để đổi từ là state tự làm mới.
+ * exact = true: tra đúng từ này, không nhận cụm (dùng khi bấm một từ nhỏ trong cụm).
+ * Chỉ khi xem tiếng Việt, AI mới nhận ra cụm; xem tiếng Anh vẫn tra đúng từ vừa chạm.
  */
-export function useWordLookup(word: string, sentence: string, lang: MeaningLang, mode: AiMode): WordLookup {
+export function useWordLookup(word: string, sentence: string, lang: MeaningLang, mode: AiMode, exact = false): WordLookup {
   const { meanings } = useServices();
-  const entry = meanings.lookup(word);
-  const [viet, setViet] = useState<VietState>({ status: 'idle' });
+  const base = meanings.lookup(word); // từ vừa chạm
+  const memoKey = (m: AiMode) => `${m}|${exact ? 'x' : ''}|${word}|${sentence}`;
+  const [viet, setViet] = useState<VietState>(() => {
+    const hit = sessionMemo.get(memoKey(mode));
+    return hit ? { status: 'done', value: hit } : { status: 'idle' };
+  });
   const mounted = useRef(true);
   useEffect(() => () => { mounted.current = false; }, []);
 
   // chạy lại khi đổi ngôn ngữ hoặc đổi Tự động / Nâng cao (đã có trong cache thì trả về ngay)
   const lastRun = useRef('');
   useEffect(() => {
-    const needHv = entry.hanviet.includes('?');
+    const needHv = base.hanviet.includes('?');
     if (lang !== 'vi' && !needHv) return;
     if (lastRun.current === mode) return; // đổi qua lại VI/EN không gọi lại AI
     lastRun.current = mode;
-    setViet({ status: 'loading' });
+    if (!sessionMemo.has(memoKey(mode))) setViet({ status: 'loading' });
     const ctrl = new AbortController();
     const timer = window.setTimeout(() => ctrl.abort(), VIET_TIMEOUT);
     const live = () => mounted.current && lastRun.current === mode;
     meanings
-      .vietnamese(entry, sentence, mode, ctrl.signal)
-      .then((value) => live() && setViet({ status: 'done', value }))
+      .vietnamese(base, sentence, mode, ctrl.signal, exact)
+      .then((value) => {
+        sessionMemo.set(memoKey(mode), value);
+        if (live()) setViet({ status: 'done', value });
+      })
       .catch((e: Error) => {
         if (!live()) return;
         const message = ctrl.signal.aborted ? 'AI trả lời quá lâu, thử chạm lại từ này.' : e.message;
@@ -56,11 +70,17 @@ export function useWordLookup(word: string, sentence: string, lang: MeaningLang,
   }, [lang, mode]);
 
   const vietValue = viet.status === 'done' ? viet.value : null;
+  const phrase = vietValue?.phrase && vietValue.phrase !== word ? vietValue.phrase : word;
+  const entry = phrase === word ? base : meanings.lookup(phrase);
+  const dictPinyins = [...new Set(entry.senses.map((s) => s.pinyin))].slice(0, 3);
   return {
+    phrase,
+    parts: phrase === word ? [] : vietValue?.parts ?? [],
     entry,
     viet,
     vietValue,
     hanviet: mergeHanviet(entry.hanviet, vietValue?.hanviet),
-    pinyins: [...new Set(entry.senses.map((s) => s.pinyin))].slice(0, 3),
+    // cụm thường không có trong CC-CEDICT: dùng pinyin AI trả về
+    pinyins: dictPinyins.length ? dictPinyins : vietValue?.pinyin ? [vietValue.pinyin] : [],
   };
 }

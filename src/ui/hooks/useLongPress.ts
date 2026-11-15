@@ -26,7 +26,6 @@ export function useLongPress<T>(
         start.current = { x: e.clientX, y: e.clientY };
         timer.current = window.setTimeout(() => {
           fired.current = true;
-          navigator.vibrate?.(15);
           onLongPress(value);
         }, delay);
       },
