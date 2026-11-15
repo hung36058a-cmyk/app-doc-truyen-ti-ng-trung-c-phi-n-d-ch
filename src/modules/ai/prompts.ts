@@ -76,6 +76,8 @@ export function vietMeaningPrompt(word: string, sentence: string, englishHint: s
    cụm động từ + tân ngữ quen dùng, cụm hay đi liền nhau mà nghĩa của cả cụm khác hoặc tự nhiên hơn nghĩa cộng từng từ
    (ví dụ 汗毛直立, 頭皮發麻, 哭笑不得, 騙吃騙喝). Nếu có: "phrase" = cả cụm, PHẢI là chuỗi chữ liền nhau y hệt trong câu và
    chứa "${word}". Nếu không: "phrase" = "${word}". Không mở rộng thành cả mệnh đề hay cả câu.
+   KHÔNG ghép phó từ mức độ / hư từ vào cụm (有點, 很, 非常, 都, 也, 了, 的, 得…): 有點哭笑不得 → cụm là 哭笑不得.
+   Bản thân "${word}" đã là thành ngữ / cụm 4 chữ thì giữ nguyên "${word}". Đa số từ KHÔNG nằm trong cụm nào: khi phân vân, chọn "${word}".
 2) "meaning" = nghĩa của "phrase" (cả cụm) theo ngữ cảnh.
 3) "parts": nếu "phrase" gồm từ 2 từ nhỏ trở lên thì liệt kê từng từ nhỏ theo thứ tự, ghép lại PHẢI đúng bằng "phrase",
    mỗi từ kèm nghĩa ngắn (tối đa 6 từ). Ví dụ 汗毛直立 → [{"text":"汗毛","meaning":"lông tơ"},{"text":"直立","meaning":"dựng đứng"}].

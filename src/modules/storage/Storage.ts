@@ -27,6 +27,8 @@ export interface WordRepo {
 export interface MeaningCache {
   get(key: string): Promise<VietMeaning | undefined>;
   set(key: string, value: VietMeaning): Promise<void>;
+  /** Mọi khóa bắt đầu bằng prefix (dùng để nạp danh sách cụm đã biết). */
+  keys(prefix: string): Promise<string[]>;
 }
 
 /** Cache bản dịch đoạn văn, khóa = ngôn ngữ đích + nội dung đoạn. */

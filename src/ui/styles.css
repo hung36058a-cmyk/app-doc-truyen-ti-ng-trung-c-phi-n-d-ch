@@ -617,7 +617,9 @@ label.btn, label.add-tile { cursor: pointer; }
 
 /* ---------- v2.8: cụm từ (collocation) + các từ nhỏ trong cụm ---------- */
 .word-pop-head { flex-wrap: wrap; row-gap: 4px; }
-.word-pop-word { flex-shrink: 1; overflow-wrap: anywhere; }
+.word-pop-word { flex-shrink: 1; min-width: 0; overflow-wrap: anywhere; }
+/* pinyin · Hán Việt xuống một dòng riêng, đủ rộng (cụm dài làm cột pinyin bị bóp thành từng chữ) */
+.word-pop-reading { order: 10; flex: 1 0 100%; }
 .phrase-parts { display: flex; flex-wrap: wrap; gap: 6px 8px; }
 .phrase-part {
   display: inline-flex; align-items: baseline; gap: 6px; padding: 5px 10px; border-radius: 10px;

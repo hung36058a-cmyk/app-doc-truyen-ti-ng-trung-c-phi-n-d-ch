@@ -9,6 +9,16 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '2.9',
+    date: '15/11/2026',
+    notes: [
+      'Từ điển riêng tự lớn dần: từ / cụm nào AI đã giải nghĩa thì lưu luôn trên máy; lần sau chạm lại (ở bất kỳ câu nào) hiện ngay, không chờ AI, không tốn lượt API. Các từ đã tra từ bản cũ vẫn dùng được',
+      'Cụm đã biết (vd 汗毛直立) gặp lại ở chỗ khác cũng nhận ra ngay, không cần hỏi AI',
+      'Sửa lỗi cụm bị ghép dư phó từ (有點哭笑不得 -> 哭笑不得); chạm 有點 không còn bị hiện thành cả cụm',
+      'Sửa lỗi bong bóng tra cụm dài: pinyin và Hán Việt bị bóp thành cột dọc từng chữ, giờ nằm trên một dòng riêng',
+    ],
+  },
+  {
     version: '2.8',
     date: '15/11/2026',
     notes: [

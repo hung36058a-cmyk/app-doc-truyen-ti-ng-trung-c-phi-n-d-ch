@@ -76,6 +76,7 @@ export function createDexieStorage(): Storage {
     meanings: {
       get: async (key) => (await db.meanings.get(key))?.value,
       set: async (key, value) => { await db.meanings.put({ key, value }); },
+      keys: async (prefix) => (await db.meanings.where('key').startsWith(prefix).primaryKeys()) as string[],
     },
     translations: {
       get: async (key) => (await db.translations.get(key))?.value,
