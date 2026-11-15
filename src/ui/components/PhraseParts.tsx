@@ -6,8 +6,8 @@ import { PosTag } from './PosTag';
 
 interface Props {
   parts: PhrasePart[];
-  onPick?: (text: string) => void;
-  current?: string; // từ đang xem (được đánh dấu)
+  onPick?: (text: string, index: number) => void;
+  current?: number; // vị trí từ đang xem (được đánh dấu)
 }
 
 export function PhraseParts({ parts, onPick, current }: Props) {
@@ -22,7 +22,7 @@ export function PhraseParts({ parts, onPick, current }: Props) {
           </>
         );
         return onPick ? (
-          <button key={i} class="phrase-part" aria-current={p.text === current} onClick={() => onPick(p.text)}>{inner}</button>
+          <button key={i} class="phrase-part" aria-current={i === current} onClick={() => onPick(p.text, i)}>{inner}</button>
         ) : (
           <span key={i} class="phrase-part">{inner}</span>
         );

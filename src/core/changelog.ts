@@ -9,6 +9,14 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '3.3',
+    date: '16/11/2026',
+    notes: [
+      'Bảng tra từ: khi tra riêng một chữ của từ ghép (vd 熄 trong 熄滅) hoặc một từ nhỏ của cụm, hai bên nút Lưu từ có nút ‹ › để chuyển sang chữ / từ nhỏ trước, sau — giống nút chuyển câu trong khung dịch câu',
+      'Tra một chữ của từ ghép cũng có bong bóng ↩ quay lại cả từ ghép, kèm các chữ để bấm chọn',
+    ],
+  },
+  {
     version: '3.2',
     date: '16/11/2026',
     notes: [

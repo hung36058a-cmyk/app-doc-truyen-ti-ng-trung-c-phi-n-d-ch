@@ -10,7 +10,7 @@ import { sentenceAt, splitSentences } from '@/services/sentence';
 import { highlightRange } from '@/services/phrase';
 import { useServices } from '../context';
 import { Paragraph } from '../components/Paragraph';
-import { WordSheet, type PhraseBack } from '../components/WordSheet';
+import { WordSheet, type PhraseBack, type WordNav } from '../components/WordSheet';
 import { WordPopover } from '../components/WordPopover';
 import { ChapterEnd } from '../components/ChapterEnd';
 import { TocSheet } from '../components/TocSheet';
@@ -43,6 +43,7 @@ interface Selection {
   sentence: string;
   expanded: boolean; // false = bong bóng nhỏ cạnh từ, true = bảng đầy đủ ở đáy màn hình
   back?: PhraseBack; // đang xem một từ nhỏ của cụm này (hiện bong bóng quay lại cụm)
+  nav?: WordNav; // các từ nhỏ / chữ anh em, để nút ‹ › chuyển qua lại
 }
 
 const NO_WORDS: Set<string> = new Set();
@@ -396,9 +397,15 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
           onLang={(l) => onSettings({ meaningLang: l })}
           onSave={saveWord}
           onUnsave={unsaveWord}
-          onPick={(w, from) => setSel({ ...sel, word: w, exact: true, back: sel.back ?? from ?? undefined })}
+          onPick={(w, from, nav) => setSel({ ...sel, word: w, exact: true, back: sel.back ?? from ?? undefined, nav })}
           back={sel.back}
-          onBack={() => sel.back && setSel({ ...sel, word: sel.back.word, exact: sel.back.exact, back: undefined })}
+          onBack={() => sel.back && setSel({ ...sel, word: sel.back.word, exact: sel.back.exact, back: undefined, nav: undefined })}
+          nav={sel.nav}
+          onNav={(d) => {
+            const n = sel.nav;
+            const i = n ? n.index + d : -1;
+            if (n && i >= 0 && i < n.items.length) setSel({ ...sel, word: n.items[i], exact: true, nav: { ...n, index: i } });
+          }}
           aiMode={settings.aiMode}
           onAiMode={(m) => onSettings({ aiMode: m })}
           onClose={() => setSel(null)}

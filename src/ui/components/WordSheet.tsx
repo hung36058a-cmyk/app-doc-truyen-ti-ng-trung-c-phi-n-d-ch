@@ -17,6 +17,13 @@ export interface PhraseBack {
   meaning: string;
   pos?: string;
   parts: PhrasePart[];
+  chars?: boolean; // true = "cụm" này thực ra là một từ ghép được tách thành từng chữ (vd 熄滅 -> 熄, 滅)
+}
+
+/** Danh sách anh em (các từ nhỏ của cụm, hoặc các chữ của từ ghép) để chuyển qua lại bằng nút ‹ ›. */
+export interface WordNav {
+  items: string[];
+  index: number; // vị trí của từ đang xem trong items
 }
 
 interface Props {
@@ -30,8 +37,10 @@ interface Props {
   onUnsave: (word: string) => void;
   aiMode: AiMode; // 'save' = Dịch tự động, 'quality' = Dịch nâng cao
   onAiMode: (m: AiMode) => void;
-  onPick: (word: string, from: PhraseBack | null) => void; // tra riêng một từ nhỏ / một chữ (không nhận cụm); from = cụm đang xem
+  onPick: (word: string, from: PhraseBack | null, nav: WordNav) => void; // tra riêng một từ nhỏ / một chữ (không nhận cụm); from = cụm đang xem
   back?: PhraseBack; // đang xem một từ nhỏ của cụm này
+  nav?: WordNav; // có thì hiện nút ‹ › để sang từ nhỏ / chữ trước, sau
+  onNav: (delta: -1 | 1) => void;
   onBack: () => void; // quay lại xem cả cụm
   onClose: () => void;
 }
@@ -43,7 +52,11 @@ export function WordSheet(p: Props) {
   const here: PhraseBack | null = parts.length
     ? { word: p.word, exact: p.exact, phrase, meaning: vietValue?.meaning ?? '', pos: vietValue?.partOfSpeech, parts }
     : null;
-  const pick = (w: string) => p.onPick(w, here);
+  // từ ghép không có từ nhỏ: tách từng chữ, coi từ đó là "cụm" để có bong bóng quay lại
+  const charsHere: PhraseBack = { word: p.word, exact: p.exact, phrase, meaning: vietValue?.meaning ?? '', pos: vietValue?.partOfSpeech, chars: true, parts: chars.map((c) => ({ text: c, meaning: '' })) };
+  const pickPart = (list: PhrasePart[], from: PhraseBack | null) => (w: string, i: number) =>
+    p.onPick(w, from, { items: list.map((x) => x.text), index: i });
+  const nav = p.nav;
 
   return (
     <>
@@ -71,27 +84,30 @@ export function WordSheet(p: Props) {
         </div>
 
         {p.back && (
-          <div class="phrase-back" aria-label="Cụm chứa từ này">
+          <div class="phrase-back" aria-label={p.back.chars ? 'Từ chứa chữ này' : 'Cụm chứa từ này'}>
             <button class="phrase-part is-phrase" onClick={p.onBack}>
               <span class="phrase-back-icon" aria-hidden="true">↩</span>
               <span class="phrase-part-text" lang="zh-Hant">{p.back.phrase}</span>
-              <span class="phrase-part-meaning"><PosTag raw={p.back.pos} phrase />{p.back.meaning}</span>
+              <span class="phrase-part-meaning"><PosTag raw={p.back.pos} phrase={!p.back.chars} />{p.back.meaning}</span>
             </button>
-            <PhraseParts parts={p.back.parts} current={phrase} onPick={pick} />
+            <PhraseParts parts={p.back.parts} current={nav && nav.items.join('') === p.back.phrase ? nav.index : -1} onPick={pickPart(p.back.parts, null)} />
           </div>
         )}
 
-        <PhraseParts parts={parts} onPick={pick} />
+        <PhraseParts parts={parts} onPick={pickPart(parts, here)} />
 
         {chars.length > 1 && parts.length === 0 && (
           <div class="char-chips" aria-label="Tra từng chữ">
             {chars.map((c, i) => (
-              <button key={i} class="chip" onClick={() => pick(c)}>{c}</button>
+              <button key={i} class="chip" onClick={() => pickPart(charsHere.parts, charsHere)(c, i)}>{c}</button>
             ))}
           </div>
         )}
 
         <div class="sheet-actions">
+          {nav && (
+            <button class="icon-btn nav-btn" aria-label="Từ trước" disabled={nav.index === 0} onClick={() => p.onNav(-1)}>‹</button>
+          )}
           {p.isSaved(phrase) ? (
             <button class="btn" style={{ flex: 1, height: '48px' }} onClick={() => p.onUnsave(phrase)}>
               <IconStar filled /> Đã lưu · Bỏ lưu
@@ -105,6 +121,9 @@ export function WordSheet(p: Props) {
             <button class="icon-btn" aria-label="Nghe phát âm" onClick={() => speak(phrase)}>
               <IconSpeaker />
             </button>
+          )}
+          {nav && (
+            <button class="icon-btn nav-btn" aria-label="Từ sau" disabled={nav.index >= nav.items.length - 1} onClick={() => p.onNav(1)}>›</button>
           )}
         </div>
       </section>
