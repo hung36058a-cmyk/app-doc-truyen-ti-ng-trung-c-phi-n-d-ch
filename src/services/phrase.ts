@@ -3,21 +3,26 @@
 
 import type { PhrasePart } from '@/core/types';
 
-/** Phó từ mức độ / hư từ hay bị AI ghép nhầm vào đầu hoặc cuối cụm (vd 有點 + 哭笑不得). */
-const EDGE_WORDS = ['有點兒', '有點', '有些', '一點', '非常', '十分', '特別', '已經', '真是', '實在', '簡直',
-  '很', '太', '更', '最', '真', '好', '挺', '都', '也', '就', '又', '還', '才', '再', '了', '的', '地', '得', '著', '過', '呢', '嗎', '吧', '啊'];
+/** Phó từ / hư từ hay bị AI ghép nhầm vào ĐẦU cụm (vd 有點 + 哭笑不得). */
+const LEAD_WORDS = ['有點兒', '有點', '有些', '一點', '非常', '十分', '特別', '已經', '實在', '簡直', '很', '太', '更', '都', '也', '就', '還', '又', '才', '再'];
+/** Trợ từ hay bị ghép nhầm vào CUỐI cụm. Không gồm 得/了/的 vì nhiều thành ngữ kết thúc bằng chúng (哭笑不得). */
+const TAIL_WORDS = ['呢', '嗎', '吧', '啊', '呀'];
 
 /**
- * Làm gọn cụm AI trả về: bỏ phó từ/hư từ ở hai đầu (有點哭笑不得 -> 哭笑不得).
+ * Làm gọn cụm AI trả về: bỏ phó từ ở đầu, trợ từ ở cuối (有點哭笑不得 -> 哭笑不得).
  * Trả '' nếu không còn là cụm hợp lệ: phải chứa từ vừa chạm, dài hơn từ đó, và (nếu biết câu) nằm nguyên văn trong câu.
+ * Từ vừa chạm là chính phó từ / trợ từ (vd chạm 有點) thì không nhận cụm.
  */
 export function cleanPhrase(phrase: string, word: string, sentence: string): string {
+  if (LEAD_WORDS.includes(word) || TAIL_WORDS.includes(word)) return '';
   let p = phrase.trim();
   for (let changed = true; changed; ) {
     changed = false;
-    for (const w of EDGE_WORDS) {
-      if (p.startsWith(w) && p.length > w.length && p.slice(w.length).includes(word)) { p = p.slice(w.length); changed = true; }
-      if (p.endsWith(w) && p.length > w.length && p.slice(0, -w.length).includes(word)) { p = p.slice(0, -w.length); changed = true; }
+    for (const w of LEAD_WORDS) {
+      if (p.startsWith(w) && p.slice(w.length).includes(word)) { p = p.slice(w.length); changed = true; }
+    }
+    for (const w of TAIL_WORDS) {
+      if (p.endsWith(w) && p.slice(0, -w.length).includes(word)) { p = p.slice(0, -w.length); changed = true; }
     }
   }
   if (!p || p === word || !p.includes(word)) return '';
