@@ -19,7 +19,7 @@ const sessionMemo = new Map<string, VietMeaning>();
 
 export interface WordLookup {
   phrase: string; // cụm chứa từ vừa chạm (nếu AI nhận ra), không thì chính từ đó
-  parts: PhrasePart[]; // từ nhỏ trong cụm, kèm nghĩa; rỗng nếu không có cụm
+  parts: PhrasePart[]; // từ nhỏ trong cụm (hoặc trong chính từ, nếu từ đó là cụm), kèm nghĩa; rỗng nếu không có
   entry: DictEntry; // của cả cụm
   dictVi: string; // nghĩa Việt từ điển offline (CVDICT), có ngay không cần AI; '' nếu từ điển không có
   viet: VietState;
@@ -76,7 +76,7 @@ export function useWordLookup(word: string, sentence: string, lang: MeaningLang,
   const dictPinyins = [...new Set(entry.senses.map((s) => s.pinyin))].slice(0, 3);
   return {
     phrase,
-    parts: phrase === word ? [] : vietValue?.parts ?? [],
+    parts: vietValue?.parts ?? [],
     entry,
     dictVi: entry.senses.find((s) => s.vietnamese.length)?.vietnamese.slice(0, 3).join('; ') ?? '',
     viet,

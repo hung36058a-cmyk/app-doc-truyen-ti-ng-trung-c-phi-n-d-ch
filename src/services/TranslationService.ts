@@ -3,14 +3,14 @@
 
 import type { AiMode, MeaningLang } from '@/core/types';
 import type { AiProvider } from '@/modules/ai/AiProvider';
-import { parseSentenceReply, translateParagraphPrompt, translateSentencePrompt } from '@/modules/ai/prompts';
+import { parseSentenceReply, translateParagraphPrompt, translateSentencePrompt, type SentenceReply } from '@/modules/ai/prompts';
 import type { TranslationCache } from '@/modules/storage/Storage';
 
 /** Khóa cache: giữ nguyên dạng cũ cho Dịch tự động để không mất bản dịch đã có. */
 const tier = (mode: AiMode) => (mode === 'quality' ? 'pro|' : '');
 const quality = (mode: AiMode) => (mode === 'quality' ? ('best' as const) : ('fast' as const));
 
-type SentenceResult = { hanviet: string; translation: string };
+type SentenceResult = SentenceReply;
 
 export class TranslationService {
   /** Câu đang được dịch (kể cả dịch sẵn chạy ngầm): mở câu đó thì chờ chung, không gọi AI lần 2. */
@@ -47,15 +47,16 @@ export class TranslationService {
     return text;
   }
 
-  /** Dịch một câu kèm âm Hán Việt cả câu do AI viết. onText nhận kết quả đang viết dở (đã tách 2 phần). */
+  /** Dịch một câu kèm âm Hán Việt cả câu và các cụm cố định trong câu, do AI viết. onText nhận kết quả đang viết dở (đã tách 2 phần). */
   async translateSentence(
     sentence: string,
     target: MeaningLang,
     context: string,
     mode: AiMode,
-    onText?: (partial: { hanviet: string; translation: string }) => void,
-  ): Promise<{ hanviet: string; translation: string }> {
-    const key = `${target}|hv|${tier(mode)}${sentence}`;
+    onText?: (partial: SentenceResult) => void,
+  ): Promise<SentenceResult> {
+    // hv2: bản 3.2 thêm dòng CỤM vào câu trả lời, nên không dùng lại bản dịch cũ (thiếu cụm)
+    const key = `${target}|hv2|${tier(mode)}${sentence}`;
     const hit = await this.cache.get(key);
     if (hit) return parseSentenceReply(hit);
     const running = this.inflight.get(key);

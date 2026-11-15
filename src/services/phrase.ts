@@ -30,6 +30,30 @@ export function cleanPhrase(phrase: string, word: string, sentence: string): str
   return p;
 }
 
+/** Bỏ phó từ ở đầu / trợ từ ở cuối một cụm (không cần biết từ vừa chạm). */
+function trimPhrase(phrase: string): string {
+  let p = phrase.trim();
+  for (let changed = true; changed; ) {
+    changed = false;
+    for (const w of LEAD_WORDS) if (p.startsWith(w) && p.length > w.length) { p = p.slice(w.length); changed = true; }
+    for (const w of TAIL_WORDS) if (p.endsWith(w) && p.length > w.length) { p = p.slice(0, -w.length); changed = true; }
+  }
+  return p;
+}
+
+/**
+ * Các cụm hợp lệ để hiện thành bong bóng trong khung dịch câu: có nguyên văn trong câu, dài từ 2 chữ,
+ * không trùng một từ đơn đã có bong bóng riêng (words), không trùng nhau. Giữ thứ tự xuất hiện trong câu.
+ */
+export function sentencePhrases(candidates: Iterable<string>, sentence: string, words: Set<string>): string[] {
+  const seen = new Set<string>();
+  for (const c of candidates) {
+    const p = trimPhrase(c);
+    if ([...p].length >= 2 && sentence.includes(p) && !words.has(p)) seen.add(p);
+  }
+  return [...seen].sort((a, b) => sentence.indexOf(a) - sentence.indexOf(b));
+}
+
 /** Tìm trong danh sách cụm đã biết một cụm chứa từ vừa chạm và có mặt trong câu (cụm dài nhất thắng). */
 export function knownPhraseIn(phrases: Iterable<string>, word: string, sentence: string): string {
   let best = '';

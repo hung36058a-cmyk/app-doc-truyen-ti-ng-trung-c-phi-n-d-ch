@@ -1,13 +1,23 @@
 // ui/components/WordSheet.tsx — Popup tra từ (trượt lên từ đáy màn hình):
 // từ, pinyin, âm Hán Việt, nghĩa Việt (AI) / Anh (CC-CEDICT), nút Lưu, nút nghe, tra từng chữ.
 
-import type { AiMode, DictEntry, MeaningLang, VietMeaning } from '@/core/types';
+import type { AiMode, DictEntry, MeaningLang, PhrasePart, VietMeaning } from '@/core/types';
 import { canSpeak, speak } from '@/modules/speech/speak';
 import { useWordLookup, type VietState } from '../hooks/useWordLookup';
 import { IconSpeaker, IconStar } from '../icons';
 import { AiTierToggle } from './AiTierToggle';
 import { PhraseParts } from './PhraseParts';
 import { PosTag } from './PosTag';
+
+/** Cụm mà người dùng vừa đi từ đó xuống xem một từ nhỏ: để hiện bong bóng quay lại cụm. */
+export interface PhraseBack {
+  word: string; // từ đã chạm lúc đầu (mở lại đúng như cũ)
+  exact: boolean;
+  phrase: string;
+  meaning: string;
+  pos?: string;
+  parts: PhrasePart[];
+}
 
 interface Props {
   word: string;
@@ -20,13 +30,20 @@ interface Props {
   onUnsave: (word: string) => void;
   aiMode: AiMode; // 'save' = Dịch tự động, 'quality' = Dịch nâng cao
   onAiMode: (m: AiMode) => void;
-  onPick: (word: string) => void; // tra riêng một từ nhỏ / một chữ (không nhận cụm)
+  onPick: (word: string, from: PhraseBack | null) => void; // tra riêng một từ nhỏ / một chữ (không nhận cụm); from = cụm đang xem
+  back?: PhraseBack; // đang xem một từ nhỏ của cụm này
+  onBack: () => void; // quay lại xem cả cụm
   onClose: () => void;
 }
 
 export function WordSheet(p: Props) {
   const { phrase, parts, entry, viet, vietValue, hanviet, pinyins } = useWordLookup(p.word, p.sentence, p.lang, p.aiMode, p.exact);
   const chars = [...phrase];
+  const isPhrase = phrase !== p.word || parts.length > 0;
+  const here: PhraseBack | null = parts.length
+    ? { word: p.word, exact: p.exact, phrase, meaning: vietValue?.meaning ?? '', pos: vietValue?.partOfSpeech, parts }
+    : null;
+  const pick = (w: string) => p.onPick(w, here);
 
   return (
     <>
@@ -50,15 +67,26 @@ export function WordSheet(p: Props) {
         </div>
 
         <div class="sheet-meaning" aria-live="polite">
-          {p.lang === 'vi' ? <VietBlock state={viet} entry={entry} isPhrase={phrase !== p.word} /> : <EnglishBlock entry={entry} />}
+          {p.lang === 'vi' ? <VietBlock state={viet} entry={entry} isPhrase={isPhrase} /> : <EnglishBlock entry={entry} />}
         </div>
 
-        <PhraseParts parts={parts} onPick={p.onPick} />
+        {p.back && (
+          <div class="phrase-back" aria-label="Cụm chứa từ này">
+            <button class="phrase-part is-phrase" onClick={p.onBack}>
+              <span class="phrase-back-icon" aria-hidden="true">↩</span>
+              <span class="phrase-part-text" lang="zh-Hant">{p.back.phrase}</span>
+              <span class="phrase-part-meaning"><PosTag raw={p.back.pos} phrase />{p.back.meaning}</span>
+            </button>
+            <PhraseParts parts={p.back.parts} current={phrase} onPick={pick} />
+          </div>
+        )}
+
+        <PhraseParts parts={parts} onPick={pick} />
 
         {chars.length > 1 && parts.length === 0 && (
           <div class="char-chips" aria-label="Tra từng chữ">
             {chars.map((c, i) => (
-              <button key={i} class="chip" onClick={() => p.onPick(c)}>{c}</button>
+              <button key={i} class="chip" onClick={() => pick(c)}>{c}</button>
             ))}
           </div>
         )}

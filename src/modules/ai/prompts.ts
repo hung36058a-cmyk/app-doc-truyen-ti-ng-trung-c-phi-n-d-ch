@@ -8,18 +8,36 @@ export function translateSentencePrompt(sentence: string, target: 'vi' | 'en', c
   return `Câu trong truyện tiếng Trung phồn thể:
 ${sentence}
 ${context ? `Ngữ cảnh (phần ngay trước, KHÔNG dịch): ${context}\n` : ''}
-Trả lời đúng 2 phần, không thêm gì khác:
+Trả lời đúng 3 phần, không thêm gì khác:
 Dòng 1: "HÁN VIỆT: " rồi âm Hán Việt của TỪNG chữ Hán trong câu theo đúng thứ tự, viết thường, cách nhau bằng dấu cách,
 bỏ qua dấu câu; chọn âm Hán Việt đúng với nghĩa của chữ trong câu (ví dụ 眼 = nhãn, 該 = cai, 不知道 = bất tri đạo).
-Từ dòng 2: bản dịch ${lang} tự nhiên, sát nghĩa, giữ cách xưng hô hợp với nhân vật.`;
+Dòng 2: "CỤM: " rồi các CỤM CỐ ĐỊNH (collocation) có trong câu, cách nhau bằng " | ": thành ngữ, cụm 4 chữ, cụm động từ + tân ngữ
+quen dùng, cụm hay đi liền nhau (ví dụ 墜樓身亡, 汗毛直立, 頭皮發麻). Mỗi cụm PHẢI là chuỗi chữ liền nhau y hệt trong câu, gồm từ 2 từ trở lên;
+không ghép phó từ / hư từ (很, 有點, 都, 了, 的…) vào cụm. Không có cụm nào thì ghi "CỤM: -".
+Từ dòng 3: bản dịch ${lang} tự nhiên, sát nghĩa, giữ cách xưng hô hợp với nhân vật.`;
 }
 
-/** Tách câu trả lời của translateSentencePrompt thành { hanviet, translation }. Chịu được câu trả lời đang viết dở. */
-export function parseSentenceReply(raw: string): { hanviet: string; translation: string } {
-  const text = raw.replace(/^\s+/, '');
-  const m = /^\**\s*HÁN\s*VIỆT\s*\**\s*[:：]\s*(.*)(?:\n|$)/i.exec(text);
-  if (!m) return { hanviet: '', translation: text.trim() };
-  return { hanviet: m[1].replace(/\*+/g, '').trim(), translation: text.slice(m[0].length).trim() };
+export interface SentenceReply {
+  hanviet: string;
+  phrases: string[]; // cụm cố định AI tìm thấy trong câu (chưa lọc)
+  translation: string;
+}
+
+/** Tách câu trả lời của translateSentencePrompt thành { hanviet, phrases, translation }. Chịu được câu trả lời đang viết dở. */
+export function parseSentenceReply(raw: string): SentenceReply {
+  let text = raw.replace(/^\s+/, '');
+  const out: SentenceReply = { hanviet: '', phrases: [], translation: '' };
+  const hv = /^\**\s*HÁN\s*VIỆT\s*\**\s*[:：]\s*(.*)(?:\n|$)/i.exec(text);
+  if (hv) { out.hanviet = hv[1].replace(/\*+/g, '').trim(); text = text.slice(hv[0].length).replace(/^\s+/, ''); }
+  const ph = /^\**\s*C[ỤU]M\s*\**\s*[:：]\s*(.*)(?:\n|$)/i.exec(text);
+  if (ph) {
+    out.phrases = ph[1].replace(/\*+/g, '').split(/[|｜,，、]/).map((s) => s.trim()).filter((s) => s && s !== '-');
+    text = text.slice(ph[0].length);
+  } else if (!text.includes('\n') && /^\**\s*C[ỤU]?M?\s*$/i.test(text)) {
+    text = ''; // dòng "CỤM:" đang viết dở, chưa phải bản dịch
+  }
+  out.translation = text.trim();
+  return out;
 }
 
 export function translateParagraphPrompt(paragraph: string, target: 'vi' | 'en', context: string): string {

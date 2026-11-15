@@ -10,7 +10,7 @@ import { sentenceAt, splitSentences } from '@/services/sentence';
 import { highlightRange } from '@/services/phrase';
 import { useServices } from '../context';
 import { Paragraph } from '../components/Paragraph';
-import { WordSheet } from '../components/WordSheet';
+import { WordSheet, type PhraseBack } from '../components/WordSheet';
 import { WordPopover } from '../components/WordPopover';
 import { ChapterEnd } from '../components/ChapterEnd';
 import { TocSheet } from '../components/TocSheet';
@@ -42,6 +42,7 @@ interface Selection {
   phrase?: string; // cụm AI nhận ra chứa từ vừa chạm (để tô sáng cả cụm)
   sentence: string;
   expanded: boolean; // false = bong bóng nhỏ cạnh từ, true = bảng đầy đủ ở đáy màn hình
+  back?: PhraseBack; // đang xem một từ nhỏ của cụm này (hiện bong bóng quay lại cụm)
 }
 
 const NO_WORDS: Set<string> = new Set();
@@ -395,7 +396,9 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
           onLang={(l) => onSettings({ meaningLang: l })}
           onSave={saveWord}
           onUnsave={unsaveWord}
-          onPick={(w) => setSel({ ...sel, word: w, exact: true })}
+          onPick={(w, from) => setSel({ ...sel, word: w, exact: true, back: sel.back ?? from ?? undefined })}
+          back={sel.back}
+          onBack={() => sel.back && setSel({ ...sel, word: sel.back.word, exact: sel.back.exact, back: undefined })}
           aiMode={settings.aiMode}
           onAiMode={(m) => onSettings({ aiMode: m })}
           onClose={() => setSel(null)}

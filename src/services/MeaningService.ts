@@ -45,12 +45,23 @@ export class MeaningService {
     await this.loading;
   }
 
+  /** Các cụm đã có trong từ điển riêng mà câu này chứa (để hiện bong bóng cụm trong khung dịch câu). */
+  async knownPhrasesIn(sentence: string): Promise<string[]> {
+    await this.loadPhrases();
+    return [...new Set([...this.phrases!.pro, ...this.phrases!.auto])].filter((p) => sentence.includes(p));
+  }
+
   /** Tìm trong từ điển riêng: cụm đã biết có trong câu, rồi tới nghĩa từ đơn. Không có thì trả undefined. */
   private async fromMemory(word: string, sentence: string, mode: AiMode, exact: boolean): Promise<VietMeaning | undefined> {
     await this.loadPhrases();
     // Dịch tự động: dùng cả kết quả Nâng cao nếu có (tốt hơn). Nâng cao: chỉ dùng kết quả Nâng cao.
     const tiers: ('pro' | 'auto')[] = mode === 'quality' ? ['pro'] : ['pro', 'auto'];
     if (!exact) {
+      // chính từ này là một cụm đã biết (vd bấm bong bóng cụm trong khung dịch câu)
+      for (const t of tiers) {
+        const hit = await this.cache.get(`ph|${t}|${word}`);
+        if (hit) return { ...hit, phrase: undefined };
+      }
       for (const t of tiers) {
         const p = knownPhraseIn(this.phrases![t], word, sentence);
         const hit = p ? await this.cache.get(`ph|${t}|${p}`) : undefined;
@@ -59,7 +70,10 @@ export class MeaningService {
     }
     for (const t of tiers) {
       const hit = (await this.cache.get(`w|${t}|${word}`)) ?? (await this.cache.get(`${t === 'pro' ? 'pro|' : ''}${word}|`));
-      if (hit) return { ...hit, phrase: undefined, parts: undefined };
+      if (hit) {
+        const parts = validParts(hit.parts, word); // chỉ giữ từ nhỏ của chính từ này (cụm tra trực tiếp)
+        return { ...hit, phrase: undefined, parts: parts.length ? parts : undefined };
+      }
     }
     return undefined;
   }
@@ -80,7 +94,8 @@ export class MeaningService {
 
     // AI có thể trả cụm sai (không có trong câu / dính phó từ): làm gọn, sai hẳn thì coi như không có cụm
     const phrase = exact ? '' : cleanPhrase(String(parsed.phrase ?? ''), word, sentence);
-    const parts = phrase ? validParts(parsed.parts, phrase) : [];
+    // không mở rộng thành cụm nhưng bản thân từ gồm nhiều từ nhỏ (vd bấm bong bóng cụm): vẫn giữ các từ nhỏ
+    const parts = phrase ? validParts(parsed.parts, phrase) : exact ? [] : validParts(parsed.parts, word);
     const pinyin = String(parsed.pinyin ?? '').trim();
     const value: VietMeaning = {
       meaning: String(parsed.meaning ?? '').trim(),
@@ -99,6 +114,10 @@ export class MeaningService {
       // nghĩa riêng của từ vừa chạm (lấy từ phần "parts") cũng vào từ điển riêng
       const own = parts.find((x) => x.text === word);
       if (own?.meaning) await this.cache.set(`w|${t}|${word}`, { meaning: own.meaning, partOfSpeech: own.pos ?? '' });
+    } else if (parts.length) {
+      // bản thân từ là một cụm (bấm bong bóng cụm): lưu như cụm để lần sau chạm từ nhỏ trong cụm cũng nhận ra
+      await this.cache.set(`ph|${t}|${word}`, value);
+      this.phrases?.[t].add(word);
     } else {
       await this.cache.set(`w|${t}|${word}`, value);
     }

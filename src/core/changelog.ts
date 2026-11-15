@@ -9,6 +9,15 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '3.2',
+    date: '16/11/2026',
+    notes: [
+      'Khung dịch câu: thêm hàng bong bóng CỤM (vd 墜樓身亡) phía trên hàng bong bóng từng từ. Chạm bong bóng cụm để tra cả cụm, kèm các từ nhỏ bên dưới',
+      'Cụm do AI tìm trong lúc dịch câu, cộng thêm các cụm đã tra trước đây có trong câu',
+      'Bảng tra từ: khi bấm vào một từ nhỏ trong cụm (vd 墜樓), phía dưới có bong bóng ↩ cụm 墜樓身亡 để quay lại cả cụm, cùng các từ nhỏ khác để chuyển qua lại',
+    ],
+  },
+  {
     version: '3.1.1',
     date: '15/11/2026',
     notes: [

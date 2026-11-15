@@ -1,5 +1,6 @@
 // ui/components/TranslationSheet.tsx — Khung dịch, mở khi BẤM GIỮ một chữ trong truyện.
-// Chế độ "câu": câu chứa chữ đó được tô sáng; khung hiện từng từ của câu (chạm để tra), pinyin và Hán Việt
+// Chế độ "câu": câu chứa chữ đó được tô sáng; khung hiện bong bóng các CỤM trong câu (AI tìm + cụm đã biết),
+// bong bóng từng từ của câu (chạm để tra), pinyin và Hán Việt
 //   cả câu, và bản dịch câu (tự dịch ngay). Nút ‹ › chuyển sang câu trước / sau trong cùng đoạn.
 // Chế độ "đoạn": bấm "Dịch cả đoạn" -> chỉ hiện bản dịch cả đoạn, không tách từ.
 // Hàng "Dịch tự động / Dịch nâng cao" đổi model ngay trong khung (nhớ cho lần sau): tự động = Gemini Flash,
@@ -9,6 +10,7 @@ import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { AiMode, MeaningLang } from '@/core/types';
 import type { SentenceSpan } from '@/services/sentence';
 import { useServices } from '../context';
+import { sentencePhrases } from '@/services/phrase';
 import { AiTierToggle } from './AiTierToggle';
 
 export type TransMode = 'sentence' | 'paragraph';
@@ -34,9 +36,11 @@ interface Props {
 type Result = { status: 'loading'; partial: string } | { status: 'done'; text: string } | { status: 'error'; message: string };
 
 export function TranslationSheet(p: Props) {
-  const { translations, segmenter, dictionary } = useServices();
+  const { translations, segmenter, dictionary, meanings } = useServices();
   const [result, setResult] = useState<Result>({ status: 'loading', partial: '' });
   const [aiHanviet, setAiHanviet] = useState(''); // Hán Việt cả câu do AI viết (chính xác hơn bảng chữ)
+  const [aiPhrases, setAiPhrases] = useState<string[]>([]); // cụm AI tìm thấy trong câu
+  const [knownPhrases, setKnownPhrases] = useState<string[]>([]); // cụm đã có trong từ điển riêng
   const run = useRef(0);
 
   // từ trong câu, kèm vị trí trong đoạn (để chạm từ là tra đúng chỗ)
@@ -48,6 +52,20 @@ export function TranslationSheet(p: Props) {
       return { ...t, at };
     });
   }, [p.sentence, segmenter]);
+
+  const phrases = useMemo(
+    () => sentencePhrases([...aiPhrases, ...knownPhrases], p.sentence.text, new Set(words.filter((t) => t.isWord).map((t) => t.text))),
+    [aiPhrases, knownPhrases, words],
+  );
+  /** Vị trí (trong đoạn) của cụm: lần xuất hiện đầu tiên trong câu. */
+  const phraseAt = (ph: string) => p.sentence.start + [...p.sentence.text.slice(0, p.sentence.text.indexOf(ph))].length;
+
+  useEffect(() => {
+    let alive = true;
+    setKnownPhrases([]);
+    meanings.knownPhrasesIn(p.sentence.text).then((list) => alive && setKnownPhrases(list)).catch(() => {});
+    return () => { alive = false; };
+  }, [p.sentence.text]);
 
   const pinyin = words
     .filter((t) => t.isWord)
@@ -68,6 +86,7 @@ export function TranslationSheet(p: Props) {
     const live = () => id === run.current;
     setResult({ status: 'loading', partial: '' });
     setAiHanviet('');
+    setAiPhrases([]);
     const fail = (e: Error) => live() && setResult({ status: 'error', message: e.message });
     if (p.mode === 'paragraph') {
       translations
@@ -79,11 +98,13 @@ export function TranslationSheet(p: Props) {
         .translateSentence(target.text, p.lang, target.context, p.aiMode, (r) => {
           if (!live()) return;
           if (r.hanviet) setAiHanviet(r.hanviet);
+          if (r.phrases.length) setAiPhrases(r.phrases);
           setResult({ status: 'loading', partial: r.translation });
         })
         .then((r) => {
           if (!live()) return;
           setAiHanviet(r.hanviet);
+          setAiPhrases(r.phrases);
           setResult({ status: 'done', text: r.translation });
           if (p.next) translations.prefetchSentence(p.next.text, p.lang, [...p.paragraph].slice(0, p.next.start).join(''), p.aiMode);
         })
@@ -111,6 +132,15 @@ export function TranslationSheet(p: Props) {
 
         {p.mode === 'sentence' ? (
           <>
+            {phrases.length > 0 && (
+              <div class="word-chips phrase-chips" lang="zh-Hant" aria-label="Cụm trong câu, chạm để tra cả cụm">
+                {phrases.map((ph) => (
+                  <button key={ph} class="chip is-phrase" onClick={() => p.onPickWord(ph, phraseAt(ph))}>
+                    <span class="chip-label" lang="vi">cụm</span>{ph}
+                  </button>
+                ))}
+              </div>
+            )}
             <div class="word-chips" lang="zh-Hant" aria-label="Chạm một từ để tra">
               {words.filter((t) => t.isWord).map((t, i) => (
                 <button key={i} class="chip" onClick={() => p.onPickWord(t.text, t.at)}>{t.text}</button>
