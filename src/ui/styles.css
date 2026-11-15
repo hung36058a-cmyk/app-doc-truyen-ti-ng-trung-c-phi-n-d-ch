@@ -628,3 +628,8 @@ label.btn, label.add-tile { cursor: pointer; }
 button.phrase-part { min-height: 40px; cursor: pointer; }
 .phrase-part-text { font: 700 17px var(--font-han); }
 .phrase-part-meaning { color: var(--muted); }
+
+/* ---------- v3.0: nghĩa Việt từ điển offline (CVDICT) ---------- */
+.dict-vi { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); }
+.dict-vi-label { font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+.dict-vi ol { font-size: 15px; }

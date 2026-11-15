@@ -49,7 +49,7 @@ export function WordSheet(p: Props) {
         </div>
 
         <div class="sheet-meaning" aria-live="polite">
-          {p.lang === 'vi' ? <VietBlock state={viet} /> : <EnglishBlock entry={entry} />}
+          {p.lang === 'vi' ? <VietBlock state={viet} entry={entry} /> : <EnglishBlock entry={entry} />}
         </div>
 
         <PhraseParts parts={parts} onPick={p.onPick} />
@@ -83,17 +83,35 @@ export function WordSheet(p: Props) {
   );
 }
 
-function VietBlock({ state }: { state: VietState }) {
-  if (state.status === 'done') {
-    return (
-      <>
-        <div>{state.value.meaning}</div>
-        {state.value.partOfSpeech && <div class="meta" style={{ marginTop: '4px' }}>{state.value.partOfSpeech}</div>}
-      </>
-    );
-  }
-  if (state.status === 'error') return <div class="meta">{state.message} Chuyển sang EN để xem nghĩa tiếng Anh.</div>;
-  return <div class="skeleton" aria-label="Đang lấy nghĩa tiếng Việt" />;
+/** Nghĩa Việt: dòng đầu là nghĩa theo ngữ cảnh (AI), bên dưới là các nghĩa của từ điển offline (có ngay). */
+function VietBlock({ state, entry }: { state: VietState; entry: DictEntry }) {
+  const dict = entry.senses.filter((s) => s.vietnamese.length).slice(0, 3);
+  return (
+    <>
+      {state.status === 'done' && (
+        <>
+          <div>{state.value.meaning}</div>
+          {state.value.partOfSpeech && <div class="meta" style={{ marginTop: '4px' }}>{state.value.partOfSpeech}</div>}
+        </>
+      )}
+      {state.status === 'loading' && <div class="skeleton" aria-label="AI đang chọn nghĩa theo câu" />}
+      {state.status === 'error' && !dict.length && <div class="meta">{state.message} Chuyển sang EN để xem nghĩa tiếng Anh.</div>}
+      {dict.length > 0 && (
+        <div class="dict-vi">
+          <div class="dict-vi-label">Từ điển</div>
+          <ol>
+            {dict.map((s, i) => (
+              <li key={i}>
+                {dict.length > 1 && <span class="pin">{s.pinyin} · </span>}
+                {s.vietnamese.slice(0, 5).join('; ')}
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+      {state.status !== 'done' && state.status !== 'loading' && !dict.length && state.status !== 'error' && <div class="meta">Không có trong từ điển.</div>}
+    </>
+  );
 }
 
 function EnglishBlock({ entry }: { entry: DictEntry }) {

@@ -44,6 +44,7 @@ export interface ReadingProgress {
 export interface DictSense {
   pinyin: string; // dạng có dấu thanh, ví dụ "chēng hu"
   english: string[];
+  vietnamese: string[]; // nghĩa tiếng Việt từ CVDICT (offline); rỗng nếu không có
 }
 
 /** Kết quả tra từ điển offline. */

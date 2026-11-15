@@ -102,11 +102,24 @@ export function WordPopover(p: Props) {
   );
 }
 
-/** Nghĩa ngắn một-hai dòng: nghĩa Việt của AI, hoặc nghĩa Anh đầu tiên của CC-CEDICT. */
+/**
+ * Nghĩa ngắn một-hai dòng. Tiếng Việt: hiện NGAY nghĩa từ điển offline (CVDICT), AI trả lời xong thì thay bằng
+ * nghĩa đúng ngữ cảnh (và nhận ra cụm). Từ điển không có thì hiện tạm nghĩa Anh trong lúc chờ AI.
+ */
 function ShortMeaning({ look, lang }: { look: WordLookup; lang: MeaningLang }) {
   const english = look.entry.senses[0]?.english.slice(0, 3).join('; ');
   if (lang === 'en') return <>{english || <span class="meta">Không có trong từ điển.</span>}</>;
   if (look.viet.status === 'done') return <>{look.viet.value.meaning}</>;
+  if (look.dictVi) {
+    return (
+      <>
+        <div>{look.dictVi}</div>
+        {look.viet.status === 'loading' && (
+          <div class="word-pop-wait"><span class="skeleton" /> <span class="meta">AI đang chọn nghĩa theo câu…</span></div>
+        )}
+      </>
+    );
+  }
   if (look.viet.status === 'error') {
     return (
       <>
@@ -115,7 +128,6 @@ function ShortMeaning({ look, lang }: { look: WordLookup; lang: MeaningLang }) {
       </>
     );
   }
-  // trong lúc chờ AI: hiện trước nghĩa Anh của từ điển để không phải nhìn khung trống
   return (
     <>
       {english && <div class="word-pop-en">{english}</div>}

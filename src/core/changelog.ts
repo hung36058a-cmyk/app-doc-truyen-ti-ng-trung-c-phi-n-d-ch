@@ -9,6 +9,18 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '3.0',
+    date: '15/11/2026',
+    notes: [
+      'Từ điển Trung–Việt offline (CVDICT, hơn 122.000 từ): chạm từ là có nghĩa tiếng Việt NGAY, không cần mạng, không chờ AI. AI vẫn chạy ngầm để chọn nghĩa đúng câu và nhận ra cụm, xong thì tự thay vào',
+      'Bảng Chi tiết: nghĩa theo câu (AI) ở trên, các nghĩa của từ điển ở dưới',
+      'Dịch câu / đoạn nhanh hơn: chữ hiện dần ngay khi AI đang viết thay vì chờ viết xong',
+      'Dịch nâng cao (Gemini Pro) suy nghĩ ít lại nên trả lời nhanh hơn nhiều',
+      'Dịch xong một câu thì app dịch sẵn câu kế tiếp, bấm › là có ngay',
+      'Lần đầu mở bản này app tải lại dữ liệu từ điển (khoảng 6 MB)',
+    ],
+  },
+  {
     version: '2.9.1',
     date: '15/11/2026',
     notes: [

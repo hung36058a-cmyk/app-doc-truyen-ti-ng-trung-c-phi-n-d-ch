@@ -21,6 +21,7 @@ export interface WordLookup {
   phrase: string; // cụm chứa từ vừa chạm (nếu AI nhận ra), không thì chính từ đó
   parts: PhrasePart[]; // từ nhỏ trong cụm, kèm nghĩa; rỗng nếu không có cụm
   entry: DictEntry; // của cả cụm
+  dictVi: string; // nghĩa Việt từ điển offline (CVDICT), có ngay không cần AI; '' nếu từ điển không có
   viet: VietState;
   vietValue: VietMeaning | null;
   hanviet: string;
@@ -77,6 +78,7 @@ export function useWordLookup(word: string, sentence: string, lang: MeaningLang,
     phrase,
     parts: phrase === word ? [] : vietValue?.parts ?? [],
     entry,
+    dictVi: entry.senses.find((s) => s.vietnamese.length)?.vietnamese.slice(0, 3).join('; ') ?? '',
     viet,
     vietValue,
     hanviet: mergeHanviet(entry.hanviet, vietValue?.hanviet),

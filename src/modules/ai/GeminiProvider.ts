@@ -14,12 +14,12 @@ const MODELS: Record<'quick' | 'best', string[]> = {
 const ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 /**
- * Mức "suy nghĩ" cho từng model. Flash 3.x mặc định nghĩ ở mức medium nên trả lời chậm (tra từ treo vài chục giây):
- * mức quick ép nghĩ ít nhất mà model cho phép. Gemini 2.5 dùng thinkingBudget (0 = tắt).
- * Mức best (Pro) để mặc định của model cho bản dịch tốt nhất.
+ * Mức "suy nghĩ" cho từng model. Model 3.x mặc định nghĩ nhiều (medium/high) nên trả lời rất chậm.
+ * Dịch truyện không cần suy luận dài: quick (Flash) nghĩ ít nhất model cho phép; best (Pro) nghĩ ở mức low
+ * (Pro mặc định "high" làm Dịch nâng cao chờ 20–40 giây). Gemini 2.5 dùng thinkingBudget (Flash 0 = tắt, Pro tối thiểu 128).
  */
 function thinkingConfig(model: string, quality: 'quick' | 'best'): Record<string, unknown> | undefined {
-  if (quality === 'best') return undefined;
+  if (quality === 'best') return model.startsWith('gemini-2.5') ? { thinkingBudget: 128 } : { thinkingLevel: 'low' };
   if (model.startsWith('gemini-2.5')) return { thinkingBudget: 0 };
   if (model === 'gemini-3-flash-preview') return { thinkingLevel: 'minimal' };
   return { thinkingLevel: 'low' }; // 3.6 / 3.8 Flash không nhận 'minimal'
@@ -43,7 +43,8 @@ export class GeminiProvider implements AiProvider {
     const list = [...new Set([this.working[quality], ...MODELS[quality]].filter((m): m is string => !!m))];
     let lastError = 'Gemini không trả lời.';
     for (const model of list) {
-      const res = await fetch(`${ENDPOINT}/${model}:generateContent`, {
+      // gọi dạng "stream": chữ hiện dần ngay khi AI viết, không phải chờ viết xong cả bản dịch
+      const res = await fetch(`${ENDPOINT}/${model}:streamGenerateContent?alt=sse`, {
         method: 'POST',
         signal: opts.signal,
         headers: { 'content-type': 'application/json', 'x-goog-api-key': this.key.trim() },
@@ -53,11 +54,9 @@ export class GeminiProvider implements AiProvider {
         }),
       });
       if (res.ok) {
-        const data = (await res.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
-        const text = data.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('') ?? '';
+        const text = await readStream(res, opts.onText);
         if (!text) throw new Error('Gemini trả về rỗng (có thể bị bộ lọc nội dung chặn).');
         this.working[quality] = model;
-        opts.onText?.(text);
         return text;
       }
       const body = await res.text().catch(() => '');
@@ -72,5 +71,46 @@ export class GeminiProvider implements AiProvider {
       // 404 (model không còn) hoặc lỗi quyền theo model: thử model kế tiếp
     }
     throw new Error(lastError);
+  }
+}
+
+type Chunk = { candidates?: { content?: { parts?: { text?: string; thought?: boolean }[] } }[] };
+
+/** Đọc câu trả lời dạng stream (Server-Sent Events): mỗi dòng "data: {...}" là một mẩu chữ mới. */
+async function readStream(res: Response, onText?: (textSoFar: string) => void): Promise<string> {
+  if (!res.body) {
+    const raw = await res.text();
+    return raw.split('\n').filter((l) => l.startsWith('data:')).map((l) => chunkText(l)).join('');
+  }
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = '';
+  let text = '';
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    const lines = buf.split('\n');
+    buf = lines.pop() ?? '';
+    let grew = false;
+    for (const line of lines) {
+      if (!line.startsWith('data:')) continue;
+      const piece = chunkText(line);
+      if (piece) { text += piece; grew = true; }
+    }
+    if (grew) onText?.(text);
+  }
+  if (buf.startsWith('data:')) text += chunkText(buf);
+  onText?.(text);
+  return text;
+}
+
+/** Chữ trong một dòng "data: {...}" (bỏ phần "suy nghĩ" của model nếu có). */
+function chunkText(line: string): string {
+  try {
+    const data = JSON.parse(line.slice(5).trim()) as Chunk;
+    return data.candidates?.[0]?.content?.parts?.filter((p) => !p.thought).map((p) => p.text ?? '').join('') ?? '';
+  } catch {
+    return '';
   }
 }

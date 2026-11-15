@@ -11,7 +11,7 @@ Cài lên điện thoại: mở trang GitHub Pages của repo bằng Chrome → 
 | `src/core` | Kiểu dữ liệu và giá trị mặc định |
 | `src/modules/epub` | Đọc file EPUB, cắt chương theo mục lục |
 | `src/modules/segmenter` | Tách từ tiếng Trung |
-| `src/modules/dictionary` | Từ điển offline: CC-CEDICT + Hán Việt (Unihan) |
+| `src/modules/dictionary` | Từ điển offline: CC-CEDICT + nghĩa Việt CVDICT + Hán Việt (Unihan) |
 | `src/modules/ai` | Nhà cung cấp AI (Claude trên claude.ai, Claude API) và prompt |
 | `src/modules/storage` | Lưu trữ IndexedDB (Dexie) |
 | `src/modules/anki` | Tạo file .apkg |
@@ -28,4 +28,5 @@ Cài lên điện thoại: mở trang GitHub Pages của repo bằng Chrome → 
 ## Dữ liệu và giấy phép
 
 - CC-CEDICT (MDBG), giấy phép CC BY-SA 4.0
+- CVDICT (Phong Phan, https://github.com/ph0ngp/CVDICT), giấy phép CC BY-SA 4.0 — nghĩa tiếng Việt, ghép vào cột 4 của `public/data/cedict.tsv` bằng `scripts/build-cvdict.py`
 - Unihan Database (Unicode), trường kVietnamese, giấy phép Unicode

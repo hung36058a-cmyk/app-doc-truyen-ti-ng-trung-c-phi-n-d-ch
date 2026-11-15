@@ -17,6 +17,7 @@ interface Props {
   paragraph: string;
   previous: string; // đoạn ngay trước, làm ngữ cảnh cho AI
   sentence: SentenceSpan;
+  next?: SentenceSpan; // câu kế tiếp trong đoạn: dịch sẵn ngầm để bấm › là có ngay
   sentenceIndex: number;
   sentenceCount: number;
   mode: TransMode;
@@ -84,6 +85,7 @@ export function TranslationSheet(p: Props) {
           if (!live()) return;
           setAiHanviet(r.hanviet);
           setResult({ status: 'done', text: r.translation });
+          if (p.next) translations.prefetchSentence(p.next.text, p.lang, [...p.paragraph].slice(0, p.next.start).join(''), p.aiMode);
         })
         .catch(fail);
     }

@@ -1,5 +1,6 @@
-// modules/dictionary/CedictDictionary.ts — Từ điển offline: CC-CEDICT (pinyin + nghĩa Anh)
-// và Unihan kVietnamese (âm Hán Việt). Dữ liệu là file TSV do scripts/build-data.py tạo ra.
+// modules/dictionary/CedictDictionary.ts — Từ điển offline: CC-CEDICT (pinyin + nghĩa Anh),
+// CVDICT (nghĩa Việt, cột 4) và Unihan kVietnamese (âm Hán Việt).
+// Dữ liệu là file TSV do scripts/build-data.py rồi scripts/build-cvdict.py tạo ra.
 
 import type { DictEntry, DictSense } from '@/core/types';
 import type { Dictionary } from './Dictionary';
@@ -27,10 +28,10 @@ export class CedictDictionary implements Dictionary {
       fetchText(this.sources.hanvietUrl),
     ]);
     for (const line of cedict.split('\n')) {
-      const [word, pinyin, defs] = line.split('\t');
-      if (!word || !defs) continue;
+      const [word, pinyin, en = '', vi = ''] = line.split('\t');
+      if (!word || (!en && !vi)) continue;
       const list = this.words.get(word) ?? [];
-      list.push({ pinyin: numberedToMarked(pinyin), english: defs.split(' / ') });
+      list.push({ pinyin: numberedToMarked(pinyin), english: en ? en.split(' / ') : [], vietnamese: vi ? vi.split(' / ') : [] });
       this.words.set(word, list);
       const len = [...word].length;
       if (len > this._max && len <= 12) this._max = len;
@@ -61,7 +62,8 @@ function orderSenses(senses: DictSense[]): DictSense[] {
   const score = (s: DictSense) =>
     (/^[a-zāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜü]/.test(s.pinyin) ? 100 : 0) +
     (s.english.some((e) => /^(variant of|old variant|surname)/i.test(e)) ? -50 : 0) +
-    s.english.length;
+    (s.english.length === 0 ? -20 : 0) +
+    Math.max(s.english.length, s.vietnamese.length);
   return [...senses].sort((a, b) => score(b) - score(a));
 }
 

@@ -184,7 +184,7 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
       pinyin: first?.pinyin ?? viet?.pinyin ?? '',
       hanviet: entry.hanviet,
       english: first ? first.english.slice(0, 4).join('; ') : '',
-      vietnamese: viet?.meaning ?? '',
+      vietnamese: viet?.meaning || first?.vietnamese.slice(0, 3).join('; ') || '',
       sentence: sel.sentence,
       bookId: book.id,
       bookTitle: book.title,
@@ -351,6 +351,7 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
           paragraph={transText}
           previous={ch.paragraphs[trans.para - 1] ?? ''}
           sentence={transSpans[trans.sentence]}
+          next={transSpans[trans.sentence + 1]}
           sentenceIndex={trans.sentence}
           sentenceCount={transSpans.length}
           mode={trans.mode}
