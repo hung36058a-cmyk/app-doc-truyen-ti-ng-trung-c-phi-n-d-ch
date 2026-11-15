@@ -9,6 +9,15 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '2.7',
+    date: '15/11/2026',
+    notes: [
+      'Tải được truyện file .txt (ngoài .epub): tự nhận bảng mã UTF-8, GBK/GB18030 (Giản thể), Big5 (Phồn thể), UTF-16',
+      'File .txt tự chia chương theo dòng tiêu đề kiểu 第一章 / 第12回 / 楔子 / 番外 / Chapter 3; không có tiêu đề chương thì chia đều thành từng phần',
+      'Truyện .txt Giản thể cũng tự chuyển sang Phồn thể như EPUB',
+    ],
+  },
+  {
     version: '2.6',
     date: '15/11/2026',
     notes: [

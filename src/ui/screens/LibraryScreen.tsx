@@ -1,10 +1,11 @@
 // ui/screens/LibraryScreen.tsx — Màn Thư viện: thẻ "Đọc tiếp" (kèm số từ đã lưu từ truyện đó), chip lọc
-// Tất cả / Đang đọc / Chưa đọc / Xong, lưới bìa 3 cột, tải EPUB lên (truyện Giản thể tự chuyển sang Phồn thể
+// Tất cả / Đang đọc / Chưa đọc / Xong, lưới bìa 3 cột, tải truyện .epub hoặc .txt lên (truyện Giản thể tự chuyển sang Phồn thể
 // nếu bật trong Cài đặt), bấm giữ một truyện để xóa hoặc chuyển sang Phồn thể.
 
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { BookSummary, ReadingProgress } from '@/core/types';
 import { parseEpub, EpubError } from '@/modules/epub/parseEpub';
+import { parseTxt, TxtError } from '@/modules/txt/parseTxt';
 import { sampleBook } from '@/services/sampleBook';
 import { isSimplifiedBook, toTraditionalBook } from '@/services/bookScript';
 import { useServices } from '../context';
@@ -74,15 +75,18 @@ export function LibraryScreen({ onOpen, autoTraditional }: { onOpen: (bookId: st
     input.value = '';
     if (!file) return;
     // Không lọc loại file ở bộ chọn (Android hay làm mờ file .epub vì không nhận ra loại), nên kiểm tra ở đây
-    if (!/\.epub$/i.test(file.name) && file.type !== 'application/epub+zip') {
-      setError(`"${file.name}" không phải file .epub.`);
+    const isEpub = /\.epub$/i.test(file.name) || file.type === 'application/epub+zip';
+    const isTxt = /\.txt$/i.test(file.name) || file.type === 'text/plain';
+    if (!isEpub && !isTxt) {
+      setError(`"${file.name}" không phải file .epub hoặc .txt.`);
       return;
     }
     setBusy(true);
     setError('');
     setInfo('');
     try {
-      let book = await parseEpub(file, file.name.replace(/\.epub$/i, ''));
+      const name = file.name.replace(/\.(epub|txt)$/i, '');
+      let book = isEpub ? await parseEpub(file, name) : await parseTxt(file, name);
       if (autoTraditional) {
         try {
           if (await isSimplifiedBook(book, script)) {
@@ -97,9 +101,9 @@ export function LibraryScreen({ onOpen, autoTraditional }: { onOpen: (bookId: st
       await refresh();
     } catch (err) {
       setError(
-        err instanceof EpubError
+        err instanceof EpubError || err instanceof TxtError
           ? err.message
-          : `Không mở được file này (${(err as Error)?.message || 'lỗi không rõ'}). Hãy thử một file .epub khác.`,
+          : `Không mở được file này (${(err as Error)?.message || 'lỗi không rõ'}). Hãy thử một file .epub hoặc .txt khác.`,
       );
     } finally {
       setBusy(false);
@@ -142,7 +146,7 @@ export function LibraryScreen({ onOpen, autoTraditional }: { onOpen: (bookId: st
         {/* label nối thẳng với ô chọn file: chạy được cả trong WebView, nơi click() bằng code hay bị chặn */}
         <label class={`btn btn-primary btn-pill${busy ? ' is-disabled' : ''}`} for="epub-input">
           <IconPlus />
-          {busy ? 'Đang mở…' : 'Tải EPUB'}
+          {busy ? 'Đang mở…' : 'Tải truyện'}
         </label>
         <input ref={fileInput} type="file" class="sr-only" id="epub-input" onChange={onFile} disabled={busy} />
       </header>
@@ -211,7 +215,7 @@ export function LibraryScreen({ onOpen, autoTraditional }: { onOpen: (bookId: st
           {filter === 'all' && (
             <label class="add-tile" for="epub-input">
               <IconPlus size={22} />
-              Thêm truyện .epub
+              Thêm truyện .epub / .txt
             </label>
           )}
         </div>
