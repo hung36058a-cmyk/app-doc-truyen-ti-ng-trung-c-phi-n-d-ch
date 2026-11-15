@@ -2,6 +2,7 @@
 // Ví dụ cụm 汗毛直立 -> "汗毛 lông tơ" và "直立 dựng đứng". Có onPick thì mỗi từ bấm được để tra riêng từ đó.
 
 import type { PhrasePart } from '@/core/types';
+import { PosTag } from './PosTag';
 
 interface Props {
   parts: PhrasePart[];
@@ -16,7 +17,7 @@ export function PhraseParts({ parts, onPick }: Props) {
         const inner = (
           <>
             <span class="phrase-part-text" lang="zh-Hant">{p.text}</span>
-            <span class="phrase-part-meaning">{p.meaning}</span>
+            <span class="phrase-part-meaning"><PosTag raw={p.pos} />{p.meaning}</span>
           </>
         );
         return onPick ? (

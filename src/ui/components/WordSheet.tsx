@@ -7,6 +7,7 @@ import { useWordLookup, type VietState } from '../hooks/useWordLookup';
 import { IconSpeaker, IconStar } from '../icons';
 import { AiTierToggle } from './AiTierToggle';
 import { PhraseParts } from './PhraseParts';
+import { PosTag } from './PosTag';
 
 interface Props {
   word: string;
@@ -49,7 +50,7 @@ export function WordSheet(p: Props) {
         </div>
 
         <div class="sheet-meaning" aria-live="polite">
-          {p.lang === 'vi' ? <VietBlock state={viet} entry={entry} /> : <EnglishBlock entry={entry} />}
+          {p.lang === 'vi' ? <VietBlock state={viet} entry={entry} isPhrase={phrase !== p.word} /> : <EnglishBlock entry={entry} />}
         </div>
 
         <PhraseParts parts={parts} onPick={p.onPick} />
@@ -84,14 +85,13 @@ export function WordSheet(p: Props) {
 }
 
 /** Nghĩa Việt: dòng đầu là nghĩa theo ngữ cảnh (AI), bên dưới là các nghĩa của từ điển offline (có ngay). */
-function VietBlock({ state, entry }: { state: VietState; entry: DictEntry }) {
+function VietBlock({ state, entry, isPhrase }: { state: VietState; entry: DictEntry; isPhrase: boolean }) {
   const dict = entry.senses.filter((s) => s.vietnamese.length).slice(0, 3);
   return (
     <>
       {state.status === 'done' && (
         <>
-          <div>{state.value.meaning}</div>
-          {state.value.partOfSpeech && <div class="meta" style={{ marginTop: '4px' }}>{state.value.partOfSpeech}</div>}
+          <div><PosTag raw={state.value.partOfSpeech} phrase={isPhrase} />{state.value.meaning}</div>
         </>
       )}
       {state.status === 'loading' && <div class="skeleton" aria-label="AI đang chọn nghĩa theo câu" />}

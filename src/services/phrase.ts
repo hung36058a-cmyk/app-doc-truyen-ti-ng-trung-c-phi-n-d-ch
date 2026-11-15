@@ -41,7 +41,7 @@ export function knownPhraseIn(phrases: Iterable<string>, word: string, sentence:
 export function validParts(parts: unknown, phrase: string): PhrasePart[] {
   if (!Array.isArray(parts)) return [];
   const list = parts
-    .map((p) => ({ text: String(p?.text ?? '').trim(), meaning: String(p?.meaning ?? '').trim() }))
+    .map((p) => ({ text: String(p?.text ?? '').trim(), meaning: String(p?.meaning ?? '').trim(), pos: String(p?.pos ?? '').trim() || undefined }))
     .filter((p) => p.text);
   if (list.map((p) => p.text).join('') === phrase) return list;
   // cụm đã được làm gọn: giữ các từ nhỏ nằm trong cụm, nếu ghép lại vẫn khớp

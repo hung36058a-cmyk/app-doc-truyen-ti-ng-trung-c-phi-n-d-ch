@@ -98,7 +98,7 @@ export class MeaningService {
       this.phrases?.[t].add(phrase);
       // nghĩa riêng của từ vừa chạm (lấy từ phần "parts") cũng vào từ điển riêng
       const own = parts.find((x) => x.text === word);
-      if (own?.meaning) await this.cache.set(`w|${t}|${word}`, { meaning: own.meaning, partOfSpeech: '' });
+      if (own?.meaning) await this.cache.set(`w|${t}|${word}`, { meaning: own.meaning, partOfSpeech: own.pos ?? '' });
     } else {
       await this.cache.set(`w|${t}|${word}`, value);
     }

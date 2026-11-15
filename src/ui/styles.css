@@ -633,3 +633,12 @@ button.phrase-part { min-height: 40px; cursor: pointer; }
 .dict-vi { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); }
 .dict-vi-label { font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
 .dict-vi ol { font-size: 15px; }
+
+/* ---------- v3.1: nhãn loại từ (N, V, ADJ… / cụm động từ) trước nghĩa ---------- */
+.pos-tag {
+  display: inline-block; margin-right: 6px; padding: 1px 6px; border-radius: 6px; vertical-align: 1px;
+  font: 700 11px/1.5 var(--font-ui); letter-spacing: 0.03em; white-space: nowrap;
+  color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.pos-tag.is-long { letter-spacing: 0; font-weight: 600; }
+.phrase-part-meaning .pos-tag { margin-right: 4px; font-size: 10px; padding: 0 5px; }

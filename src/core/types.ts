@@ -58,6 +58,7 @@ export interface DictEntry {
 export interface PhrasePart {
   text: string;
   meaning: string;
+  pos?: string; // loại từ (N, V, ADJ…), không có ở các cụm đã lưu từ bản cũ
 }
 
 /** Nghĩa tiếng Việt do AI tạo, được lưu cache. */

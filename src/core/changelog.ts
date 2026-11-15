@@ -9,6 +9,15 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '3.1',
+    date: '15/11/2026',
+    notes: [
+      'Bong bóng tra từ hiện loại từ trước nghĩa: N, V, ADJ, ADV, PRON, NUM, MW (lượng từ), PREP, CONJ, PART (trợ từ), INTJ',
+      'Cụm thì ghi cụm danh từ / cụm động từ / cụm tính từ / thành ngữ; từng từ nhỏ trong cụm cũng có loại từ',
+      'Loại từ hiện khi AI đã chọn nghĩa theo câu (nghĩa từ điển offline hiện tức thì chưa có loại từ)',
+    ],
+  },
+  {
     version: '3.0',
     date: '15/11/2026',
     notes: [

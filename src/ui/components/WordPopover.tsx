@@ -9,6 +9,7 @@ import { useWordLookup, type WordLookup } from '../hooks/useWordLookup';
 import { IconSpeaker, IconStar } from '../icons';
 import { AiTierToggle } from './AiTierToggle';
 import { PhraseParts } from './PhraseParts';
+import { PosTag } from './PosTag';
 
 interface Props {
   word: string;
@@ -86,7 +87,7 @@ export function WordPopover(p: Props) {
           </button>
         )}
       </div>
-      <div class="word-pop-meaning" aria-live="polite"><ShortMeaning look={look} lang={p.lang} /></div>
+      <div class="word-pop-meaning" aria-live="polite"><ShortMeaning look={look} lang={p.lang} isPhrase={hasPhrase} /></div>
       <PhraseParts parts={look.parts} />
       <div class="word-pop-actions">
         {p.isSaved(look.phrase) ? (
@@ -106,10 +107,10 @@ export function WordPopover(p: Props) {
  * Nghĩa ngắn một-hai dòng. Tiếng Việt: hiện NGAY nghĩa từ điển offline (CVDICT), AI trả lời xong thì thay bằng
  * nghĩa đúng ngữ cảnh (và nhận ra cụm). Từ điển không có thì hiện tạm nghĩa Anh trong lúc chờ AI.
  */
-function ShortMeaning({ look, lang }: { look: WordLookup; lang: MeaningLang }) {
+function ShortMeaning({ look, lang, isPhrase }: { look: WordLookup; lang: MeaningLang; isPhrase: boolean }) {
   const english = look.entry.senses[0]?.english.slice(0, 3).join('; ');
   if (lang === 'en') return <>{english || <span class="meta">Không có trong từ điển.</span>}</>;
-  if (look.viet.status === 'done') return <>{look.viet.value.meaning}</>;
+  if (look.viet.status === 'done') return <><PosTag raw={look.viet.value.partOfSpeech} phrase={isPhrase} />{look.viet.value.meaning}</>;
   if (look.dictVi) {
     return (
       <>

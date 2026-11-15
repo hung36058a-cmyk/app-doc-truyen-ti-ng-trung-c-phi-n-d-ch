@@ -1,5 +1,7 @@
 // modules/ai/prompts.ts — Toàn bộ prompt gửi cho AI nằm ở đây, để chỉnh nội dung không cần đụng code khác.
 
+import { POS_CODES_PHRASE, POS_CODES_WORD } from '@/services/partOfSpeech';
+
 /** Dịch MỘT câu và viết luôn âm Hán Việt của cả câu (một lần gọi AI cho cả hai). */
 export function translateSentencePrompt(sentence: string, target: 'vi' | 'en', context: string): string {
   const lang = target === 'vi' ? 'tiếng Việt' : 'tiếng Anh';
@@ -80,7 +82,8 @@ export function vietMeaningPrompt(word: string, sentence: string, englishHint: s
    Bản thân "${word}" đã là thành ngữ / cụm 4 chữ thì giữ nguyên "${word}". Đa số từ KHÔNG nằm trong cụm nào: khi phân vân, chọn "${word}".
 2) "meaning" = nghĩa của "phrase" (cả cụm) theo ngữ cảnh.
 3) "parts": nếu "phrase" gồm từ 2 từ nhỏ trở lên thì liệt kê từng từ nhỏ theo thứ tự, ghép lại PHẢI đúng bằng "phrase",
-   mỗi từ kèm nghĩa ngắn (tối đa 6 từ). Ví dụ 汗毛直立 → [{"text":"汗毛","meaning":"lông tơ"},{"text":"直立","meaning":"dựng đứng"}].
+   mỗi từ kèm loại từ ("pos", một mã: ${POS_CODES_WORD}) và nghĩa ngắn (tối đa 6 từ).
+   Ví dụ 汗毛直立 → [{"text":"汗毛","pos":"N","meaning":"lông tơ"},{"text":"直立","pos":"V","meaning":"dựng đứng"}].
    Nếu "phrase" chỉ là một từ: "parts" = [].`;
   return `Bạn là từ điển Trung–Việt cho người Việt học tiếng Trung phồn thể.
 Từ người học vừa chạm: ${word}
@@ -93,7 +96,7 @@ Trả về DUY NHẤT một JSON, không giải thích thêm:
 {"phrase": "cụm (hoặc chính từ nếu không có cụm)",
  "pinyin": "pinyin có dấu thanh của phrase, các âm tiết cách nhau bằng dấu cách",
  "meaning": "nghĩa tiếng Việt ngắn gọn của phrase, đúng ngữ cảnh câu trên, tối đa 15 từ",
- "partOfSpeech": "từ loại bằng tiếng Việt, ví dụ: danh từ, động từ, tính từ, thành ngữ",
+ "partOfSpeech": "loại từ của phrase theo nghĩa trong câu. phrase là MỘT từ: đúng một mã trong ${POS_CODES_WORD}. phrase là cụm nhiều từ: một trong ${POS_CODES_PHRASE}",
  "hanviet": "âm Hán Việt của từng chữ trong phrase, cách nhau bằng dấu cách, viết thường",
- "parts": [{"text": "từ nhỏ", "meaning": "nghĩa ngắn"}]}`;
+ "parts": [{"text": "từ nhỏ", "pos": "mã loại từ", "meaning": "nghĩa ngắn"}]}`;
 }
