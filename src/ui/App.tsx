@@ -62,7 +62,7 @@ export function App() {
         />
       ) : (
         <div class="shell">
-          {tab === 'library' && <LibraryScreen onOpen={setReadingBookId} />}
+          {tab === 'library' && <LibraryScreen onOpen={setReadingBookId} autoTraditional={settings.autoTraditional} />}
           {tab === 'vocab' && <VocabScreen settings={settings} />}
           {tab === 'settings' && <SettingsScreen settings={settings} onChange={updateSettings} dictState={dictState} />}
           <BottomNav current={tab} hrefs={TAB_HASH} />

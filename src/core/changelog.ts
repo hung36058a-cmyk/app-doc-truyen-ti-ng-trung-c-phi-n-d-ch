@@ -9,6 +9,15 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '2.6',
+    date: '15/11/2026',
+    notes: [
+      'Chuyển Giản thể → Phồn thể (chuẩn chữ Đài Loan, dữ liệu OpenCC, chạy trên máy, không tốn API): tải truyện Giản thể lên là tự chuyển; bật/tắt ở Cài đặt',
+      'Truyện đã có trong Thư viện: bấm giữ truyện → "Chuyển sang Phồn thể". Vị trí đang đọc giữ nguyên',
+      'Nhờ chuyển sang Phồn thể, truyện Giản thể giờ tra từ được (từ điển của app dùng chữ Phồn thể)',
+    ],
+  },
+  {
     version: '2.5',
     date: '09/11/2026',
     notes: [

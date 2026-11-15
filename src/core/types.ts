@@ -136,4 +136,5 @@ export interface AppSettings {
   aiMode: AiMode;
   reader: ReaderDisplay;
   ankiDeck: string; // tên deck khi xuất thẻ
+  autoTraditional: boolean; // tải truyện Giản thể lên thì tự chuyển sang Phồn thể
 }

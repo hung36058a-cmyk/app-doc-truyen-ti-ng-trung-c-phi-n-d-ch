@@ -1,10 +1,12 @@
 // ui/screens/LibraryScreen.tsx — Màn Thư viện: thẻ "Đọc tiếp" (kèm số từ đã lưu từ truyện đó), chip lọc
-// Tất cả / Đang đọc / Chưa đọc / Xong, lưới bìa 3 cột, tải EPUB lên, bấm giữ một truyện để xóa.
+// Tất cả / Đang đọc / Chưa đọc / Xong, lưới bìa 3 cột, tải EPUB lên (truyện Giản thể tự chuyển sang Phồn thể
+// nếu bật trong Cài đặt), bấm giữ một truyện để xóa hoặc chuyển sang Phồn thể.
 
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { BookSummary, ReadingProgress } from '@/core/types';
 import { parseEpub, EpubError } from '@/modules/epub/parseEpub';
 import { sampleBook } from '@/services/sampleBook';
+import { isSimplifiedBook, toTraditionalBook } from '@/services/bookScript';
 import { useServices } from '../context';
 import { Cover } from '../components/Cover';
 import { IconPlus } from '../icons';
@@ -32,12 +34,14 @@ export function percentRead(book: BookSummary, p?: ReadingProgress): number {
   return Math.min(100, Math.round(((p.chapterIndex + (p.paragraphIndex > 0 ? 0.5 : 0)) / book.chapterCount) * 100));
 }
 
-export function LibraryScreen({ onOpen }: { onOpen: (bookId: string) => void }) {
-  const { storage } = useServices();
+export function LibraryScreen({ onOpen, autoTraditional }: { onOpen: (bookId: string) => void; autoTraditional: boolean }) {
+  const { storage, script } = useServices();
   const [books, setBooks] = useState<BookSummary[] | null>(null);
   const [progress, setProgress] = useState<Record<string, ReadingProgress>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [info, setInfo] = useState(''); // thông báo thành công, ví dụ đã chuyển sang Phồn thể
+  const [converting, setConverting] = useState(false);
   const [managing, setManaging] = useState<BookSummary | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
   const [wordCount, setWordCount] = useState<Record<string, number>>({}); // số từ đã lưu theo truyện
@@ -76,8 +80,19 @@ export function LibraryScreen({ onOpen }: { onOpen: (bookId: string) => void }) 
     }
     setBusy(true);
     setError('');
+    setInfo('');
     try {
-      const book = await parseEpub(file, file.name.replace(/\.epub$/i, ''));
+      let book = await parseEpub(file, file.name.replace(/\.epub$/i, ''));
+      if (autoTraditional) {
+        try {
+          if (await isSimplifiedBook(book, script)) {
+            book = await toTraditionalBook(book, script);
+            setInfo(`Truyện "${book.title}" là Giản thể, đã tự chuyển sang Phồn thể.`);
+          }
+        } catch {
+          setInfo('Không tải được bảng chuyển chữ nên truyện giữ nguyên. Có mạng lại thì bấm giữ truyện → Chuyển sang Phồn thể.');
+        }
+      }
       await storage.books.save(book);
       await refresh();
     } catch (err) {
@@ -97,6 +112,25 @@ export function LibraryScreen({ onOpen }: { onOpen: (bookId: string) => void }) 
     await refresh();
   };
 
+  const convert = async (id: string) => {
+    setConverting(true);
+    setError('');
+    setInfo('');
+    try {
+      const book = await storage.books.get(id);
+      if (!book) throw new Error('không tìm thấy truyện');
+      const simplified = await isSimplifiedBook(book, script);
+      await storage.books.save(await toTraditionalBook(book, script));
+      setInfo(simplified ? `Đã chuyển "${book.title}" sang Phồn thể.` : `"${book.title}" vốn đã là Phồn thể, đã rà lại các chữ Giản thể lẻ.`);
+      setManaging(null);
+      await refresh();
+    } catch (err) {
+      setError(`Không chuyển được (${(err as Error)?.message || 'lỗi không rõ'}). Kiểm tra mạng rồi thử lại.`);
+    } finally {
+      setConverting(false);
+    }
+  };
+
   const recent = books
     ?.filter((b) => progress[b.id])
     .sort((a, b) => progress[b.id].updatedAt - progress[a.id].updatedAt)[0];
@@ -114,6 +148,7 @@ export function LibraryScreen({ onOpen }: { onOpen: (bookId: string) => void }) 
       </header>
 
       {error && <p class="notice notice-error" role="alert">{error}</p>}
+      {info && <p class="notice" role="status">{info}</p>}
 
       {recent && (
         <button class="continue-card" onClick={() => onOpen(recent.id)}>
@@ -183,14 +218,18 @@ export function LibraryScreen({ onOpen }: { onOpen: (bookId: string) => void }) 
       )}
 
       {books && books.length > 0 && (
-        <p class="meta" style={{ marginTop: '20px' }}>Bấm giữ một truyện để xóa khỏi thư viện.</p>
+        <p class="meta" style={{ marginTop: '20px' }}>Bấm giữ một truyện để xóa hoặc chuyển sang Phồn thể.</p>
       )}
 
       {managing && (
-        <div class="confirm-box" style={{ marginTop: '16px' }} role="dialog" aria-label="Xóa truyện">
-          <div>Xóa <span class="han">{managing.title}</span> khỏi thư viện? Từ đã lưu vẫn giữ nguyên.</div>
+        <div class="confirm-box" style={{ marginTop: '16px' }} role="dialog" aria-label="Quản lý truyện">
+          <div><span class="han">{managing.title}</span></div>
+          <button class="btn" disabled={converting} onClick={() => convert(managing.id)}>
+            {converting ? 'Đang chuyển…' : 'Chuyển sang Phồn thể'}
+          </button>
+          <div class="meta">Xóa truyện khỏi thư viện thì từ đã lưu vẫn giữ nguyên.</div>
           <div class="row">
-            <button class="btn" onClick={() => setManaging(null)}>Giữ lại</button>
+            <button class="btn" onClick={() => setManaging(null)}>Đóng</button>
             <button class="btn btn-danger" onClick={() => remove(managing.id)}>Xóa truyện</button>
           </div>
         </div>

@@ -16,6 +16,8 @@ import { MeaningService } from './MeaningService';
 import { TranslationService } from './TranslationService';
 import { CardService } from './CardService';
 import { loadSqlJs } from '@/modules/anki/loadSql';
+import { TableScriptConverter } from '@/modules/convert/TableScriptConverter';
+import type { ScriptConverter } from '@/modules/convert/ScriptConverter';
 
 export interface Services {
   storage: Storage;
@@ -25,6 +27,7 @@ export interface Services {
   meanings: MeaningService;
   translations: TranslationService;
   cards: CardService;
+  script: ScriptConverter; // chuyển Giản thể → Phồn thể
 }
 
 export function createServices(): Services {
@@ -54,5 +57,6 @@ export function createServices(): Services {
   const meanings = new MeaningService(dictionary, ai, storage.meanings);
   const translations = new TranslationService(ai, storage.translations);
   const cards = new CardService(ai, dictionary, loadSqlJs);
-  return { storage, dictionary, segmenter, ai, meanings, translations, cards };
+  const script = new TableScriptConverter('./data/s2t.tsv');
+  return { storage, dictionary, segmenter, ai, meanings, translations, cards, script };
 }

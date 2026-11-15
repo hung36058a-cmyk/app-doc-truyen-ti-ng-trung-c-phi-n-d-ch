@@ -9,4 +9,5 @@ export const DEFAULT_SETTINGS: AppSettings = {
   aiMode: 'save',
   reader: { fontSize: 21, lineHeight: 1.9, paraSpacing: 0.9, margin: 24, font: 'serif', paper: 'auto', tapPaging: true, showLooked: true },
   ankiDeck: 'zhongwenB1',
+  autoTraditional: true,
 };

@@ -42,6 +42,16 @@ export function SettingsScreen({ settings, onChange, dictState }: Props) {
             <option value="dark">Tối</option>
           </select>
         </div>
+        <div class="setting">
+          <span class="setting-label">
+            Tự chuyển Giản thể → Phồn thể
+            <small>Tải truyện Giản thể lên thì tự đổi sang chữ Phồn thể (chuẩn Đài Loan). Truyện đã có: bấm giữ truyện ở Thư viện.</small>
+          </span>
+          <div class="seg">
+            <button aria-pressed={settings.autoTraditional} onClick={() => onChange({ autoTraditional: true })}>Bật</button>
+            <button aria-pressed={!settings.autoTraditional} onClick={() => onChange({ autoTraditional: false })}>Tắt</button>
+          </div>
+        </div>
       </div>
 
       <p class="section-label">Anki</p>
