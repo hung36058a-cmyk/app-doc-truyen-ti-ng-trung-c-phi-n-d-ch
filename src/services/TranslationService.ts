@@ -8,7 +8,7 @@ import type { TranslationCache } from '@/modules/storage/Storage';
 
 /** Khóa cache: giữ nguyên dạng cũ cho Dịch tự động để không mất bản dịch đã có. */
 const tier = (mode: AiMode) => (mode === 'quality' ? 'pro|' : '');
-const quality = (mode: AiMode) => (mode === 'quality' ? ('best' as const) : ('quick' as const));
+const quality = (mode: AiMode) => (mode === 'quality' ? ('best' as const) : ('fast' as const));
 
 type SentenceResult = { hanviet: string; translation: string };
 

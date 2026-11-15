@@ -11,8 +11,11 @@ export interface AiProvider {
   complete(prompt: string, opts?: CompleteOptions): Promise<string>;
 }
 
+export type Quality = 'quick' | 'fast' | 'best';
+
 export interface CompleteOptions {
-  quality?: 'quick' | 'best';
+  /** quick = tra từ, tạo thẻ · fast = dịch câu/đoạn (ưu tiên tốc độ) · best = Dịch nâng cao */
+  quality?: Quality;
   signal?: AbortSignal;
   onText?: (textSoFar: string) => void;
 }

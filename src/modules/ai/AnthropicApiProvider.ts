@@ -27,7 +27,7 @@ export class AnthropicApiProvider implements AiProvider {
         'anthropic-dangerous-direct-browser-access': 'true',
       },
       body: JSON.stringify({
-        model: MODELS[opts.quality ?? 'quick'],
+        model: MODELS[opts.quality === 'best' ? 'best' : 'quick'], // 'fast' (dịch) dùng chung Haiku
         max_tokens: 1024,
         messages: [{ role: 'user', content: prompt }],
       }),

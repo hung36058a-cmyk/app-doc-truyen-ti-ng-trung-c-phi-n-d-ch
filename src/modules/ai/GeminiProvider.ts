@@ -3,31 +3,34 @@
 // Mỗi mức chất lượng có danh sách model dự phòng: model không dùng được (bị gỡ, không có quyền) thì thử model sau.
 // Google đổi tên model thì chỉ cần sửa bảng MODELS.
 
-import { AiKeyError, type AiProvider, type CompleteOptions } from './AiProvider';
+import { AiKeyError, type AiProvider, type CompleteOptions, type Quality } from './AiProvider';
 
-const MODELS: Record<'quick' | 'best', string[]> = {
-  // quick: Gemini Flash — tra từ, tạo thẻ, "Dịch tự động" · best: Gemini Pro — "Dịch nâng cao"
-  // (tên model theo trang ai.google.dev/gemini-api/docs/models, 9/11/2026)
+const MODELS: Record<Quality, string[]> = {
+  // quick: Gemini Flash — tra từ, tạo thẻ · fast: Gemini Flash — "Dịch tự động" câu/đoạn · best: Gemini Pro — "Dịch nâng cao"
+  // (tên model theo trang ai.google.dev/gemini-api/docs/models, 15/11/2026)
   quick: ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-2.5-flash'],
+  // dịch: 3.6 Flash đứng đầu vì nó cho mức nghĩ 'minimal' (gần như không nghĩ) — 3.8 Flash thấp nhất chỉ 'low'
+  fast: ['gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.8-flash', 'gemini-2.5-flash'],
   best: ['gemini-3.1-pro-preview', 'gemini-2.5-pro'],
 };
 const ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 /**
  * Mức "suy nghĩ" cho từng model. Model 3.x mặc định nghĩ nhiều (medium/high) nên trả lời rất chậm.
- * Dịch truyện không cần suy luận dài: quick (Flash) nghĩ ít nhất model cho phép; best (Pro) nghĩ ở mức low
+ * Dịch truyện không cần suy luận dài: Flash nghĩ ít nhất model cho phép; best (Pro) nghĩ ở mức low
  * (Pro mặc định "high" làm Dịch nâng cao chờ 20–40 giây). Gemini 2.5 dùng thinkingBudget (Flash 0 = tắt, Pro tối thiểu 128).
+ * Theo ai.google.dev/gemini-api/docs/thinking (15/11/2026): 3.6 Flash và 3-flash-preview nhận 'minimal'; 3.8 Flash thấp nhất 'low'.
  */
-function thinkingConfig(model: string, quality: 'quick' | 'best'): Record<string, unknown> | undefined {
+const MINIMAL_OK = ['gemini-3.6-flash', 'gemini-3-flash-preview'];
+function thinkingConfig(model: string, quality: Quality): Record<string, unknown> | undefined {
   if (quality === 'best') return model.startsWith('gemini-2.5') ? { thinkingBudget: 128 } : { thinkingLevel: 'low' };
   if (model.startsWith('gemini-2.5')) return { thinkingBudget: 0 };
-  if (model === 'gemini-3-flash-preview') return { thinkingLevel: 'minimal' };
-  return { thinkingLevel: 'low' }; // 3.6 / 3.8 Flash không nhận 'minimal'
+  return { thinkingLevel: MINIMAL_OK.includes(model) ? 'minimal' : 'low' };
 }
 
 export class GeminiProvider implements AiProvider {
   /** Model gọi thành công gần nhất cho từng mức, để lần sau gọi thẳng. */
-  private working: Partial<Record<'quick' | 'best', string>> = {};
+  private working: Partial<Record<Quality, string>> = {};
 
   constructor(
     private key: string,

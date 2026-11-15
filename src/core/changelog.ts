@@ -9,6 +9,14 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '3.1.1',
+    date: '15/11/2026',
+    notes: [
+      'Dịch câu / đoạn (Dịch tự động) nhanh hơn: chuyển sang Gemini 3.6 Flash ở mức suy nghĩ thấp nhất (minimal). Gemini 3.8 Flash không cho giảm xuống mức này nên phải nghĩ vài giây rồi mới bắt đầu dịch',
+      'Tra từ và tạo thẻ Anki vẫn dùng Gemini 3.8 Flash như cũ',
+    ],
+  },
+  {
     version: '3.1',
     date: '15/11/2026',
     notes: [
