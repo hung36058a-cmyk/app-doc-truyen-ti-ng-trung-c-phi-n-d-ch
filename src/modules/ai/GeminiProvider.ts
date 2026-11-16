@@ -10,7 +10,8 @@ const MODELS: Record<Quality, string[]> = {
   // (tên model theo trang ai.google.dev/gemini-api/docs/models, 15/11/2026)
   quick: ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-2.5-flash'],
   // dịch: 3.6 Flash đứng đầu vì nó cho mức nghĩ 'minimal' (gần như không nghĩ) — 3.8 Flash thấp nhất chỉ 'low'
-  fast: ['gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.8-flash', 'gemini-2.5-flash'],
+  // dịch câu/đoạn: ưu tiên TỐC ĐỘ — Flash-Lite (model nhanh nhất, mặc định 'minimal') đứng đầu, rồi mới tới Flash
+  fast: ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-2.5-flash-lite', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-2.5-flash'],
   best: ['gemini-3.1-pro-preview', 'gemini-2.5-pro'],
 };
 const ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
@@ -21,10 +22,11 @@ const ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
  * (Pro mặc định "high" làm Dịch nâng cao chờ 20–40 giây). Gemini 2.5 dùng thinkingBudget (Flash 0 = tắt, Pro tối thiểu 128).
  * Theo ai.google.dev/gemini-api/docs/thinking (15/11/2026): 3.6 Flash và 3-flash-preview nhận 'minimal'; 3.8 Flash thấp nhất 'low'.
  */
-const MINIMAL_OK = ['gemini-3.6-flash', 'gemini-3-flash-preview'];
+const MINIMAL_OK = ['gemini-3.5-flash-lite', 'gemini-3.6-flash', 'gemini-3-flash-preview'];
 function thinkingConfig(model: string, quality: Quality): Record<string, unknown> | undefined {
   if (quality === 'best') return model.startsWith('gemini-2.5') ? { thinkingBudget: 128 } : { thinkingLevel: 'low' };
   if (model.startsWith('gemini-2.5')) return { thinkingBudget: 0 };
+  if (model === 'gemini-3.1-flash-lite') return undefined; // dùng mặc định của model (đã là nghĩ rất ít)
   return { thinkingLevel: MINIMAL_OK.includes(model) ? 'minimal' : 'low' };
 }
 
@@ -53,7 +55,11 @@ export class GeminiProvider implements AiProvider {
         headers: { 'content-type': 'application/json', 'x-goog-api-key': this.key.trim() },
         body: JSON.stringify({
           contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          ...(thinkingConfig(model, quality) && { generationConfig: { thinkingConfig: thinkingConfig(model, quality) } }),
+          generationConfig: {
+            ...(thinkingConfig(model, quality) && { thinkingConfig: thinkingConfig(model, quality) }),
+            // dịch nhanh: câu trả lời ngắn, ít "sáng tạo" -> ra chữ sớm hơn
+            ...(quality === 'fast' && { temperature: 0.3 }),
+          },
         }),
       });
       if (res.ok) {

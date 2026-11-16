@@ -1,12 +1,13 @@
 // ui/screens/ReaderScreen.tsx — Trang đọc toàn màn hình: chạm từ -> bong bóng nghĩa nhỏ ngay cạnh từ
-// ("Chi tiết" mở bảng đầy đủ), bấm giữ một chữ để dịch câu chứa nó, nhớ vị trí đọc, mục lục.
+// ("Chi tiết" mở bảng đầy đủ), bấm giữ để TỰ TÔ CHỌN chữ (2 con trỏ như bôi đen bình thường) rồi bấm
+// nút "Dịch phần đã chọn" ở đáy màn hình, nhớ vị trí đọc, mục lục.
 // Thanh tiêu đề: cuộn xuống tự ẩn; chạm giữa trang (cả khi chạm vào chữ) hoặc cuộn ngược lên là hiện lại.
 // Chạm mép trái/phải: lật lên/xuống
 // một trang (tắt được trong Aa). Nút Aa mở thanh chỉnh hiển thị. Cuối chương có thẻ tổng kết từ đã lưu.
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { AppSettings, Book, DictEntry, ReaderDisplay, SavedWord, VietMeaning } from '@/core/types';
-import { sentenceAt, splitSentences } from '@/services/sentence';
+import { sentenceAt } from '@/services/sentence';
 import { highlightRange } from '@/services/phrase';
 import { useServices } from '../context';
 import { Paragraph } from '../components/Paragraph';
@@ -15,9 +16,8 @@ import { WordPopover } from '../components/WordPopover';
 import { ChapterEnd } from '../components/ChapterEnd';
 import { TocSheet } from '../components/TocSheet';
 import { displayTitles, isTocPage } from '@/services/tocTitles';
-import { TranslationSheet, type TransMode } from '../components/TranslationSheet';
+import { TranslationSheet, type TransMode, type TransSource } from '../components/TranslationSheet';
 import { DisplayBar } from '../components/DisplayBar';
-import { useLongPress } from '../hooks/useLongPress';
 import { ChapterNav } from '../components/ChapterNav';
 import { ReaderStatus } from '../components/ReaderStatus';
 import { bookPercent, chapterLengths, chapterPosition, type ChapterPosition } from '@/services/readingProgress';
@@ -48,6 +48,26 @@ interface Selection {
 
 const NO_WORDS: Set<string> = new Set();
 
+/** Phần chữ đã tô chọn. end = vị trí ký tự kết thúc trong đoạn (-1 nếu phần chọn trải qua nhiều đoạn). */
+type Picked = TransSource & { end: number };
+
+/** Vị trí ký tự (trong đoạn) của một điểm trong vùng chọn: dựa vào data-o của <span> chứa điểm đó. */
+function pointOffset(node: Node, offset: number): { para: number; at: number } | null {
+  let el: HTMLElement | null;
+  let inner = 0;
+  if (node.nodeType === Node.TEXT_NODE) {
+    el = node.parentElement;
+    inner = [...(node.textContent ?? '').slice(0, offset)].length;
+  } else {
+    const child = (node as Element).childNodes[offset] as Node | undefined;
+    el = (child?.nodeType === Node.ELEMENT_NODE ? (child as HTMLElement) : child?.parentElement) ?? (node as HTMLElement);
+  }
+  const span = el?.closest<HTMLElement>('[data-o]');
+  const p = el?.closest<HTMLElement>('[data-p]');
+  if (!p) return null;
+  return { para: Number(p.dataset.p), at: span ? Number(span.dataset.o) + inner : 0 };
+}
+
 /** Chạm trong phần này (tính từ mỗi mép, theo bề ngang) thì lật trang thay vì hiện/ẩn thanh tiêu đề. */
 const EDGE_ZONE = 0.3;
 /** Khi lật trang, giữ lại bấy nhiêu px của trang trước để không mất dòng. */
@@ -72,8 +92,9 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
   const [sel, setSel] = useState<Selection | null>(null);
   const [showToc, setShowToc] = useState(false);
   const [showDisplay, setShowDisplay] = useState(false);
-  // khung dịch đang mở: đoạn nào, câu thứ mấy, dịch câu hay cả đoạn
-  const [trans, setTrans] = useState<{ para: number; sentence: number; mode: TransMode } | null>(null);
+  // phần chữ người dùng đang tô chọn (chưa bấm Dịch) và khung dịch đang mở
+  const [picked, setPicked] = useState<Picked | null>(null);
+  const [trans, setTrans] = useState<(Picked & { mode: TransMode }) | null>(null);
   const body = useRef<HTMLDivElement>(null);
   const restoreTo = useRef<number | null>(null);
   const [pos, setPos] = useState<ChapterPosition>({ page: 1, pages: 1, fraction: 0 });
@@ -203,22 +224,47 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
     setSavedList((list) => list.filter((x) => x.word !== word));
   };
 
-  // bấm giữ một chữ -> dịch câu chứa chữ đó
-  const longPress = useLongPress<{ para: number; offset: number }>(
-    (target) => {
-      const p = target.closest<HTMLElement>('[data-p]');
-      const at = target.closest<HTMLElement>('[data-o]');
-      return p && at ? { para: Number(p.dataset.p), offset: Number(at.dataset.o) } : null;
-    },
-    ({ para, offset }) => {
-      if (!book) return;
-      const spans = splitSentences(book.chapters[chapter].paragraphs[para]);
-      const idx = Math.max(0, spans.findIndex((x) => offset >= x.start && offset < x.end));
-      setSel(null);
-      setShowDisplay(false);
-      setTrans({ para, sentence: idx, mode: 'sentence' });
-    },
-  );
+  // người dùng tô chọn chữ (bấm giữ rồi kéo 2 con trỏ của trình duyệt) -> hiện nút "Dịch phần đã chọn"
+  const clearPick = useRef<number>();
+  useEffect(() => {
+    const onSelection = () => {
+      const s = document.getSelection();
+      const el = body.current;
+      const r = s && !s.isCollapsed && s.rangeCount ? s.getRangeAt(0) : null;
+      if (!r || !el || !el.contains(r.commonAncestorContainer) || !s!.toString().trim()) {
+        // chạm nút Dịch cũng làm mất vùng chọn: chờ một chút rồi mới ẩn nút, để cú chạm đó vẫn ăn
+        window.clearTimeout(clearPick.current);
+        clearPick.current = window.setTimeout(() => setPicked(null), 400);
+        return;
+      }
+      window.clearTimeout(clearPick.current);
+      const a = pointOffset(r.startContainer, r.startOffset);
+      const b = pointOffset(r.endContainer, r.endOffset);
+      if (!a) return;
+      const single = b && b.para === a.para && b.at > a.at;
+      setPicked({
+        para: a.para,
+        start: single ? a.at : -1,
+        end: single ? b!.at : -1,
+        text: s!.toString().replace(/\s*\n\s*/g, '\n').trim(),
+      });
+    };
+    document.addEventListener('selectionchange', onSelection);
+    return () => document.removeEventListener('selectionchange', onSelection);
+  }, []);
+
+  const openPicked = () => {
+    if (!picked) return;
+    window.clearTimeout(clearPick.current);
+    document.getSelection()?.removeAllRanges();
+    setSel(null);
+    setShowDisplay(false);
+    setTrans({ ...picked, mode: 'selection' });
+    setPicked(null);
+  };
+
+  // cú chạm để bỏ vùng chọn thì không tính là chạm vào từ (không mở bong bóng tra từ)
+  const hadSelection = useRef(false);
 
   // chạm vào chỗ không phải từ (khoảng trống, dấu câu, lề):
   // đang mở bong bóng -> đóng · mép trái/phải -> lật trang · giữa -> hiện/ẩn thanh tiêu đề
@@ -270,8 +316,7 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
   const chTitle = titles[chapter] ?? ch?.title ?? '';
   const sheetOpen = (sel !== null && sel.expanded) || trans !== null || showDisplay;
   const savedHere = book ? savedList.filter((w) => w.bookId === book.id && w.chapterIndex === chapter).map((w) => w.word) : [];
-  const transText = trans && ch ? ch.paragraphs[trans.para] : '';
-  const transSpans = useMemo(() => splitSentences(transText), [transText]);
+  const transText = trans && ch ? ch.paragraphs[trans.para] ?? '' : '';
   // khoảng ký tự tô sáng khi tra từ: cả cụm nếu AI nhận ra, không thì từ vừa chạm
   const selText = sel && sel.para >= 0 && book ? book.chapters[chapter].paragraphs[sel.para] ?? '' : '';
   const selRange = sel && sel.start >= 0 ? highlightRange(selText, sel.start, sel.end, sel.phrase) : [-1, -1];
@@ -293,9 +338,9 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
         class={`reader-body${sheetOpen ? ' sheet-open' : ''}`}
         ref={body}
         onScroll={onScroll}
-        onClickCapture={(e) => { if (longPress.consumeClick()) e.stopPropagation(); }}
+        onPointerDownCapture={() => { hadSelection.current = !(document.getSelection()?.isCollapsed ?? true); }}
+        onClickCapture={(e) => { if (hadSelection.current) { hadSelection.current = false; e.stopPropagation(); } }}
         onClick={onBodyClick}
-        {...longPress.handlers}
       >
         {!book || dictState === 'loading' ? (
           <p class="loading">{book ? 'Đang tải từ điển (lần đầu hơi lâu)…' : 'Đang mở truyện…'}</p>
@@ -328,8 +373,8 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
                   looked={d.showLooked ? looked : NO_WORDS}
                   selStart={sel?.para === i ? selRange[0] : -1}
                   selEnd={sel?.para === i ? selRange[1] : -1}
-                  hlStart={trans?.para === i ? (trans.mode === 'paragraph' ? 0 : transSpans[trans.sentence]?.start ?? -1) : -1}
-                  hlEnd={trans?.para === i ? (trans.mode === 'paragraph' ? Infinity : transSpans[trans.sentence]?.end ?? -1) : -1}
+                  hlStart={trans?.para === i ? (trans.mode === 'paragraph' ? 0 : trans.start) : -1}
+                  hlEnd={trans?.para === i ? (trans.mode === 'paragraph' ? Infinity : trans.end) : -1}
                   onTap={onTap}
                 />
               ))}
@@ -348,22 +393,27 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
         />
       )}
 
-      {trans !== null && ch && transSpans[trans.sentence] && (
+      {picked && !trans && !(sel && sel.expanded) && (
+        <button
+          class="btn btn-primary pick-translate"
+          // bấm ngay khi chạm xuống: vùng chọn của trình duyệt mất trước khi "click" kịp chạy
+          onPointerDown={(e) => { e.preventDefault(); openPicked(); }}
+          onClick={openPicked}
+        >
+          Dịch phần đã chọn
+        </button>
+      )}
+
+      {trans !== null && ch && (
         <TranslationSheet
+          source={trans}
           paragraph={transText}
-          previous={ch.paragraphs[trans.para - 1] ?? ''}
-          sentence={transSpans[trans.sentence]}
-          next={transSpans[trans.sentence + 1]}
-          sentenceIndex={trans.sentence}
-          sentenceCount={transSpans.length}
+          previous={trans.start > 0 ? [...transText].slice(0, trans.start).join('') : ch.paragraphs[trans.para - 1] ?? ''}
           mode={trans.mode}
           onMode={(mode) => setTrans({ ...trans, mode })}
-          onMove={(d) => setTrans({ ...trans, sentence: trans.sentence + d })}
-          onPickWord={(word, at) => setSel({ para: trans.para, token: tokenAt(transText, at), start: at, end: at + [...word].length, word, exact: false, sentence: transSpans[trans.sentence].text, expanded: true })}
+          onPickWord={(word, at) => setSel({ para: trans.para, token: tokenAt(transText, at), start: at, end: at + [...word].length, word, exact: false, sentence: sentenceAt(transText, at), expanded: true })}
           lang={settings.meaningLang}
           onLang={(l) => onSettings({ meaningLang: l })}
-          aiMode={settings.aiMode}
-          onAiMode={(m) => onSettings({ aiMode: m })}
           onClose={() => setTrans(null)}
         />
       )}
