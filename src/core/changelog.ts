@@ -9,6 +9,14 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '3.7',
+    date: '17/11/2026',
+    notes: [
+      'Giao diện tối mới "Đêm xanh": nền xanh đêm, điểm nhấn vàng kim (thư viện, sổ từ, cài đặt và trang đọc nền tối)',
+      'Bìa truyện hiện đủ tên truyện viết dọc thay cho một chữ; truyện EPUB tải từ bản này trở đi sẽ dùng ảnh bìa có sẵn trong file',
+    ],
+  },
+  {
     version: '3.6',
     date: '17/11/2026',
     notes: [

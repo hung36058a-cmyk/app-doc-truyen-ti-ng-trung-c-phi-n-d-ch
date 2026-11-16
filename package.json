@@ -1,6 +1,6 @@
 {
   "name": "app-doc-truyen",
-  "version": "3.6",
+  "version": "3.7",
   "description": "",
   "scripts": {
     "dev": "vite",

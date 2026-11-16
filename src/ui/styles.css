@@ -18,13 +18,13 @@
   --selected-bg: #D3ECEA;
   --warn: #B45309;
   --danger: #B42318;
-  --cover-1: #1F3B3A;
-  --cover-2: #7A4A2A;
-  --cover-3: #3B3A6B;
-  --cover-4: #6B2E3A;
-  --cover-5: #2F4A6B;
-  --cover-6: #5A5326;
-  --cover-fg: #F3EFE4;
+  --cover-1: #1D2A47;
+  --cover-2: #3A2347;
+  --cover-3: #173A3F;
+  --cover-4: #47232B;
+  --cover-5: #2B3A1F;
+  --cover-6: #3F3020;
+  --cover-fg: #E2B659;
   --shadow: 0 -8px 28px rgba(31, 35, 40, 0.14);
 
   --font-ui: 'Be Vietnam Pro', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -39,16 +39,16 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #141716; --surface: #1C201F; --surface-2: #262B2A; --line: #2C3230; --line-strong: #3A413F;
-    --fg: #E7E9E6; --muted: #A3AAA7; --faint: #7D8582; --accent: #4FB8B1; --accent-strong: #6FCAC4;
-    --accent-soft: #15302E; --on-accent: #0B1C1B; --saved-bg: #4A3A17; --selected-bg: #1D4542;
+    --bg: #0F1626; --surface: #172036; --surface-2: #212C47; --line: #263352; --line-strong: #36456B;
+    --fg: #E9EEF8; --muted: #9AA6BF; --faint: #7483A0; --accent: #E2B659; --accent-strong: #EDC978;
+    --accent-soft: #2B2A26; --on-accent: #2A1E05; --saved-bg: #4A3A17; --selected-bg: #2A3B66;
     --warn: #E3A25A; --danger: #F07A6E; --shadow: 0 -8px 28px rgba(0, 0, 0, 0.5); color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #141716; --surface: #1C201F; --surface-2: #262B2A; --line: #2C3230; --line-strong: #3A413F;
-  --fg: #E7E9E6; --muted: #A3AAA7; --faint: #7D8582; --accent: #4FB8B1; --accent-strong: #6FCAC4;
-  --accent-soft: #15302E; --on-accent: #0B1C1B; --saved-bg: #4A3A17; --selected-bg: #1D4542;
+  --bg: #0F1626; --surface: #172036; --surface-2: #212C47; --line: #263352; --line-strong: #36456B;
+  --fg: #E9EEF8; --muted: #9AA6BF; --faint: #7483A0; --accent: #E2B659; --accent-strong: #EDC978;
+  --accent-soft: #2B2A26; --on-accent: #2A1E05; --saved-bg: #4A3A17; --selected-bg: #2A3B66;
   --warn: #E3A25A; --danger: #F07A6E; --shadow: 0 -8px 28px rgba(0, 0, 0, 0.5); color-scheme: dark;
 }
 
@@ -265,9 +265,9 @@ button { cursor: pointer; }
   --accent-soft: #E1EBDF; --on-accent: #FFFFFF; --saved-bg: #F1D69E; --selected-bg: #D2E3D8; color-scheme: light;
 }
 .reader[data-paper="dark"] {
-  --bg: #141716; --surface: #1C201F; --surface-2: #262B2A; --line: #2C3230; --line-strong: #3A413F;
-  --fg: #E7E9E6; --muted: #A3AAA7; --faint: #7D8582; --accent: #4FB8B1; --accent-strong: #6FCAC4;
-  --accent-soft: #15302E; --on-accent: #0B1C1B; --saved-bg: #4A3A17; --selected-bg: #1D4542; color-scheme: dark;
+  --bg: #0F1626; --surface: #172036; --surface-2: #212C47; --line: #263352; --line-strong: #36456B;
+  --fg: #E9EEF8; --muted: #9AA6BF; --faint: #7483A0; --accent: #E2B659; --accent-strong: #EDC978;
+  --accent-soft: #2B2A26; --on-accent: #2A1E05; --saved-bg: #4A3A17; --selected-bg: #2A3B66; color-scheme: dark;
 }
 
 /* ---------- dịch đoạn ---------- */
@@ -682,3 +682,24 @@ button.phrase-part { min-height: 40px; cursor: pointer; }
 }
 .pick-bar .btn { height: 48px; padding: 0 20px; border-radius: 24px; font-size: 16px; white-space: nowrap; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); }
 .pick-bar .pick-cancel { background: var(--surface); }
+
+/* ---------- v3.7: giao diện "Đêm xanh" + bìa đủ tên truyện ---------- */
+/* thẻ đang chọn ở thanh dưới và thẻ Đọc tiếp: nền vàng rất nhạt trên xanh đêm */
+.tile-progress { background: var(--accent); }
+/* bìa tự vẽ: tên truyện viết dọc, chữ vàng, viền mảnh; cỡ chữ tự co theo số chữ trên một cột */
+.cover {
+  container-type: size; border: 1px solid color-mix(in srgb, var(--cover-fg) 70%, transparent);
+  writing-mode: horizontal-tb; overflow: hidden;
+}
+.cover::before { background: linear-gradient(150deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0) 45%, rgba(0, 0, 0, 0.18)); }
+.cover-name {
+  writing-mode: vertical-rl; text-orientation: upright; max-height: 84%; max-width: 84%;
+  font: 700 18px/1.25 var(--font-han); letter-spacing: 0.08em; color: var(--cover-fg); text-align: start;
+  font-size: min(calc(78cqh / var(--rows, 4) / 1.25), calc(70cqw / var(--cols, 1) / 1.25), 30cqw);
+}
+.cover-photo { border-color: var(--line-strong); background: var(--surface-2); }
+.cover-photo::before, .cover-photo::after { display: none; }
+.cover-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.book-tile .cover, .continue-card .cover { font-size: 16px; }
+/* vùng đang tô chọn để dịch: xanh, tách khỏi màu vàng của nút */
+::highlight(pick) { background-color: color-mix(in srgb, #5B8DEF 45%, transparent); }

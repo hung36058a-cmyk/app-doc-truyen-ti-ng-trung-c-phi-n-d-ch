@@ -51,8 +51,8 @@ export function createDexieStorage(): Storage {
         // Không đọc nội dung chương để màn Thư viện mở nhanh
         const rows: Book[] = [];
         await db.books.orderBy('addedAt').reverse().each((b) => rows.push(b));
-        return rows.map(({ id, title, author, chapters, addedAt }) => ({
-          id, title, author, chapterCount: chapters.length, addedAt,
+        return rows.map(({ id, title, author, chapters, addedAt, cover }) => ({
+          id, title, author, chapterCount: chapters.length, addedAt, cover,
         }));
       },
       get: (id) => db.books.get(id),

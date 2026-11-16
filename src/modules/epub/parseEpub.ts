@@ -97,7 +97,32 @@ export async function parseEpub(file: Blob, fallbackTitle = 'Truyện không tê
   }
 
   const toc: TocItem[] = chapters.map((c, i) => ({ title: c.title, chapterIndex: i }));
-  return { id: `${title}-${file.size}`, title, author, chapters, toc, addedAt: Date.now() };
+  const cover = await readCover(zip, opf, manifest).catch(() => undefined);
+  return { id: `${title}-${file.size}`, title, author, chapters, toc, addedAt: Date.now(), ...(cover && { cover }) };
+}
+
+// ---------- ảnh bìa ----------
+
+/** Ảnh bìa khai báo trong EPUB (properties="cover-image" hoặc <meta name="cover">), thu nhỏ thành data URL. Không có / lỗi -> undefined. */
+async function readCover(zip: JSZip, opf: Document, manifest: Map<string, ManifestItem>): Promise<string | undefined> {
+  let item = [...manifest.values()].find((m) => m.props.split(/\s+/).includes('cover-image'));
+  if (!item) {
+    const meta = byTag(opf, 'meta').find((m) => m.getAttribute('name') === 'cover');
+    item = manifest.get(meta?.getAttribute('content') ?? '');
+  }
+  if (!item || !item.type.startsWith('image/') || typeof createImageBitmap !== 'function') return undefined;
+  const f = zip.file(safeDecode(item.href)) ?? zip.file(item.href);
+  if (!f) return undefined;
+  const bitmap = await createImageBitmap(new Blob([await f.async('arraybuffer')], { type: item.type }));
+  // thu nhỏ còn bề ngang tối đa 360px để thư viện mở nhanh và ít tốn bộ nhớ
+  const scale = Math.min(1, 360 / bitmap.width);
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+  canvas.getContext('2d')?.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+  const url = canvas.toDataURL('image/jpeg', 0.8);
+  return url.startsWith('data:image/jpeg') ? url : undefined;
 }
 
 // ---------- trích chữ ----------
