@@ -43,7 +43,8 @@ export const Paragraph = memo(function Paragraph({ index, text, segmenter, saved
   return (
     <p class="para" data-p={index} onClick={handleClick}>
       {tokens.map((t, i) => {
-        const hl = offsets[i] >= hlStart && offsets[i] < hlEnd ? ' hl' : '';
+        // tô sáng mọi từ chạm vào vùng [hlStart, hlEnd), kể cả từ chỉ bị chọn một phần
+        const hl = offsets[i] < hlEnd && offsets[i] + [...t.text].length > hlStart ? ' hl' : '';
         return t.isWord ? (
           <span
             key={i}

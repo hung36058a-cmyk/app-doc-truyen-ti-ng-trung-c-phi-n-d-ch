@@ -2,52 +2,11 @@
 
 import { POS_CODES_PHRASE, POS_CODES_WORD } from '@/services/partOfSpeech';
 
-/** Dịch MỘT câu và viết luôn âm Hán Việt của cả câu (một lần gọi AI cho cả hai). */
-export function translateSentencePrompt(sentence: string, target: 'vi' | 'en', context: string): string {
-  const lang = target === 'vi' ? 'tiếng Việt' : 'tiếng Anh';
-  return `Câu trong truyện tiếng Trung phồn thể:
-${sentence}
-${context ? `Ngữ cảnh (phần ngay trước, KHÔNG dịch): ${context}\n` : ''}
-Trả lời đúng 3 phần, không thêm gì khác:
-Dòng 1: "HÁN VIỆT: " rồi âm Hán Việt của TỪNG chữ Hán trong câu theo đúng thứ tự, viết thường, cách nhau bằng dấu cách,
-bỏ qua dấu câu; chọn âm Hán Việt đúng với nghĩa của chữ trong câu (ví dụ 眼 = nhãn, 該 = cai, 不知道 = bất tri đạo).
-Dòng 2: "CỤM: " rồi các CỤM CỐ ĐỊNH (collocation) có trong câu, cách nhau bằng " | ": thành ngữ, cụm 4 chữ, cụm động từ + tân ngữ
-quen dùng, cụm hay đi liền nhau (ví dụ 墜樓身亡, 汗毛直立, 頭皮發麻). Mỗi cụm PHẢI là chuỗi chữ liền nhau y hệt trong câu, gồm từ 2 từ trở lên;
-không ghép phó từ / hư từ (很, 有點, 都, 了, 的…) vào cụm. Không có cụm nào thì ghi "CỤM: -".
-Từ dòng 3: bản dịch ${lang} tự nhiên, sát nghĩa, giữ cách xưng hô hợp với nhân vật.`;
-}
-
-export interface SentenceReply {
-  hanviet: string;
-  phrases: string[]; // cụm cố định AI tìm thấy trong câu (chưa lọc)
-  translation: string;
-}
-
-/** Tách câu trả lời của translateSentencePrompt thành { hanviet, phrases, translation }. Chịu được câu trả lời đang viết dở. */
-export function parseSentenceReply(raw: string): SentenceReply {
-  let text = raw.replace(/^\s+/, '');
-  const out: SentenceReply = { hanviet: '', phrases: [], translation: '' };
-  const hv = /^\**\s*HÁN\s*VIỆT\s*\**\s*[:：]\s*(.*)(?:\n|$)/i.exec(text);
-  if (hv) { out.hanviet = hv[1].replace(/\*+/g, '').trim(); text = text.slice(hv[0].length).replace(/^\s+/, ''); }
-  const ph = /^\**\s*C[ỤU]M\s*\**\s*[:：]\s*(.*)(?:\n|$)/i.exec(text);
-  if (ph) {
-    out.phrases = ph[1].replace(/\*+/g, '').split(/[|｜,，、]/).map((s) => s.trim()).filter((s) => s && s !== '-');
-    text = text.slice(ph[0].length);
-  } else if (!text.includes('\n') && /^\**\s*C[ỤU]?M?\s*$/i.test(text)) {
-    text = ''; // dòng "CỤM:" đang viết dở, chưa phải bản dịch
-  }
-  out.translation = text.trim();
-  return out;
-}
-
-export function translateParagraphPrompt(paragraph: string, target: 'vi' | 'en', context: string): string {
-  const lang = target === 'vi' ? 'tiếng Việt' : 'tiếng Anh';
-  return `Dịch đoạn văn trong truyện dưới đây sang ${lang} tự nhiên, sát nghĩa, giữ giọng văn và cách xưng hô hợp với nhân vật.
-${context ? `Ngữ cảnh (đoạn ngay trước, KHÔNG dịch): ${context}\n` : ''}
-Đoạn cần dịch:
-${paragraph}
-
-Chỉ trả về bản dịch, không thêm lời giải thích, không nhắc lại bản gốc.`;
+/** Dịch NHANH một câu / một đoạn người dùng tự tô chọn: chỉ bản dịch, prompt ngắn để AI trả lời sớm nhất. */
+export function translateFastPrompt(text: string, target: 'vi' | 'en', context: string): string {
+  const lang = target === 'vi' ? 'tiếng Việt thuần (không dùng âm Hán Việt khi có từ thuần Việt)' : 'tiếng Anh';
+  return `Dịch sang ${lang}, tự nhiên, đúng nghĩa trong truyện. CHỈ trả về bản dịch, không ghi chú, không phiên âm.
+${context ? `Ngữ cảnh trước đó (không dịch): ${context}\n` : ''}Cần dịch: ${text}`;
 }
 
 export interface CardPromptInput {

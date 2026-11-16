@@ -9,6 +9,15 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '3.5',
+    date: '17/11/2026',
+    notes: [
+      'Dịch nhanh hơn nhiều: khung dịch luôn dùng model nhanh nhất (Gemini Flash-Lite), AI chỉ viết bản dịch nên chữ hiện ra gần như ngay',
+      'Khung dịch chỉ còn bản dịch tiếng Việt thuần (bỏ dòng Hán Việt, cụm và công tắc Nâng cao trong khung này)',
+      'Tự chọn chữ để dịch: bấm giữ chữ trong truyện, kéo 2 con trỏ để tô đúng phần muốn dịch, rồi bấm nút "Dịch phần đã chọn" ở đáy màn hình',
+    ],
+  },
+  {
     version: '3.4',
     date: '16/11/2026',
     notes: [
