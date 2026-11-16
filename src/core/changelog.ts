@@ -9,6 +9,15 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '3.4',
+    date: '16/11/2026',
+    notes: [
+      'Bảng tra từ: dưới phần Từ điển có mục "Từ đồng nghĩa" — 3 từ gần nghĩa (kèm loại từ và nghĩa ngắn) theo đúng nghĩa trong câu',
+      'Chạm một từ đồng nghĩa để tra riêng từ đó; có bong bóng ↩ quay lại từ gốc và nút ‹ › chuyển qua lại giữa 3 từ',
+      'Từ đồng nghĩa chỉ hỏi AI một lần cho mỗi từ, lần sau hiện ngay',
+    ],
+  },
+  {
     version: '3.3',
     date: '16/11/2026',
     notes: [

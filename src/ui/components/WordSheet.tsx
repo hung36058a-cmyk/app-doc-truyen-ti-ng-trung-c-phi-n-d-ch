@@ -3,6 +3,7 @@
 
 import type { AiMode, DictEntry, MeaningLang, PhrasePart, VietMeaning } from '@/core/types';
 import { canSpeak, speak } from '@/modules/speech/speak';
+import { useSynonyms } from '../hooks/useSynonyms';
 import { useWordLookup, type VietState } from '../hooks/useWordLookup';
 import { IconSpeaker, IconStar } from '../icons';
 import { AiTierToggle } from './AiTierToggle';
@@ -18,6 +19,7 @@ export interface PhraseBack {
   pos?: string;
   parts: PhrasePart[];
   chars?: boolean; // true = "cụm" này thực ra là một từ ghép được tách thành từng chữ (vd 熄滅 -> 熄, 滅)
+  synonyms?: boolean; // true = "parts" là các từ đồng nghĩa của từ gốc (đang xem một từ đồng nghĩa)
 }
 
 /** Danh sách anh em (các từ nhỏ của cụm, hoặc các chữ của từ ghép) để chuyển qua lại bằng nút ‹ ›. */
@@ -57,6 +59,10 @@ export function WordSheet(p: Props) {
   const pickPart = (list: PhrasePart[], from: PhraseBack | null) => (w: string, i: number) =>
     p.onPick(w, from, { items: list.map((x) => x.text), index: i });
   const nav = p.nav;
+  // 3 từ đồng nghĩa: chỉ khi xem tiếng Việt và đã có nghĩa theo câu
+  const syn = useSynonyms(phrase, vietValue?.meaning ?? '', p.sentence, p.lang === 'vi' && !!vietValue);
+  const synList = syn.status === 'done' ? syn.list : [];
+  const synHere: PhraseBack = { word: p.word, exact: p.exact, phrase, meaning: vietValue?.meaning ?? '', pos: vietValue?.partOfSpeech, synonyms: true, parts: synList };
 
   return (
     <>
@@ -83,14 +89,25 @@ export function WordSheet(p: Props) {
           {p.lang === 'vi' ? <VietBlock state={viet} entry={entry} isPhrase={isPhrase} /> : <EnglishBlock entry={entry} />}
         </div>
 
+        {p.lang === 'vi' && (syn.status === 'loading' || synList.length > 0) && (
+          <div class="synonyms">
+            <div class="dict-vi-label">Từ đồng nghĩa</div>
+            {syn.status === 'loading' ? (
+              <div class="skeleton" aria-label="AI đang tìm từ đồng nghĩa" />
+            ) : (
+              <PhraseParts parts={synList} onPick={pickPart(synList, synHere)} />
+            )}
+          </div>
+        )}
+
         {p.back && (
-          <div class="phrase-back" aria-label={p.back.chars ? 'Từ chứa chữ này' : 'Cụm chứa từ này'}>
+          <div class="phrase-back" aria-label={p.back.synonyms ? 'Từ gốc' : p.back.chars ? 'Từ chứa chữ này' : 'Cụm chứa từ này'}>
             <button class="phrase-part is-phrase" onClick={p.onBack}>
               <span class="phrase-back-icon" aria-hidden="true">↩</span>
               <span class="phrase-part-text" lang="zh-Hant">{p.back.phrase}</span>
-              <span class="phrase-part-meaning"><PosTag raw={p.back.pos} phrase={!p.back.chars} />{p.back.meaning}</span>
+              <span class="phrase-part-meaning"><PosTag raw={p.back.pos} phrase={!p.back.chars && !p.back.synonyms} />{p.back.meaning}</span>
             </button>
-            <PhraseParts parts={p.back.parts} current={nav && nav.items.join('') === p.back.phrase ? nav.index : -1} onPick={pickPart(p.back.parts, null)} />
+            <PhraseParts parts={p.back.parts} current={nav && nav.items.join('|') === p.back.parts.map((x) => x.text).join('|') ? nav.index : -1} onPick={pickPart(p.back.parts, null)} />
           </div>
         )}
 

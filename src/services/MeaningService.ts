@@ -5,13 +5,14 @@
 // Khóa trong cache:
 //   w|<mức>|<từ>     nghĩa của một từ đơn (không có cụm)
 //   ph|<mức>|<cụm>   nghĩa của một cụm + các từ nhỏ trong cụm
+//   syn|<từ>         3 từ đồng nghĩa của từ / cụm (trường synonyms)
 //   <từ>|  pro|<từ>| khóa cũ (bản 2.7 trở về trước), vẫn đọc để không mất các từ đã tra
 // <mức> = 'auto' (Dịch tự động) hoặc 'pro' (Dịch nâng cao). Dịch tự động dùng luôn kết quả Nâng cao nếu đã có.
 
-import type { AiMode, DictEntry, VietMeaning } from '@/core/types';
+import type { AiMode, DictEntry, PhrasePart, VietMeaning } from '@/core/types';
 import type { Dictionary } from '@/modules/dictionary/Dictionary';
 import { extractJson, type AiProvider } from '@/modules/ai/AiProvider';
-import { vietMeaningPrompt } from '@/modules/ai/prompts';
+import { synonymsPrompt, vietMeaningPrompt } from '@/modules/ai/prompts';
 import type { MeaningCache } from '@/modules/storage/Storage';
 import { cleanPhrase, knownPhraseIn, validParts } from './phrase';
 
@@ -122,6 +123,27 @@ export class MeaningService {
       await this.cache.set(`w|${t}|${word}`, value);
     }
     return value;
+  }
+
+  /** 3 từ đồng nghĩa / gần nghĩa. Đã hỏi AI một lần thì lưu lại, lần sau hiện ngay. */
+  async synonyms(word: string, meaning: string, sentence: string, signal?: AbortSignal): Promise<PhrasePart[]> {
+    const key = `syn|${word}`;
+    const hit = await this.cache.get(key);
+    if (hit?.synonyms) return hit.synonyms;
+    const text = await this.ai.complete(synonymsPrompt(word, meaning, sentence), { quality: 'quick', signal });
+    const raw = extractJson<unknown>(text);
+    const list = (Array.isArray(raw) ? raw : []) as Partial<PhrasePart>[];
+    const seen = new Set([word]);
+    const out: PhrasePart[] = [];
+    for (const x of list) {
+      const t = String(x.text ?? '').trim();
+      if (!t || seen.has(t) || !/\p{Script=Han}/u.test(t)) continue;
+      seen.add(t);
+      out.push({ text: t, pos: String(x.pos ?? '').trim() || undefined, meaning: String(x.meaning ?? '').trim() });
+      if (out.length === 3) break;
+    }
+    if (out.length) await this.cache.set(key, { meaning: '', partOfSpeech: '', synonyms: out });
+    return out;
   }
 }
 

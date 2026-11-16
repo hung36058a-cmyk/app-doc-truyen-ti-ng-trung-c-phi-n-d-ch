@@ -69,6 +69,7 @@ export interface VietMeaning {
   phrase?: string; // cụm chứa từ vừa chạm (vd 汗毛直立); không có hoặc bằng chính từ = không có cụm
   pinyin?: string; // pinyin của cả cụm, dùng khi từ điển offline không có cụm đó
   parts?: PhrasePart[]; // các từ nhỏ ghép nên cụm, theo thứ tự (rỗng nếu không có cụm)
+  synonyms?: PhrasePart[]; // chỉ có ở mục cache "syn|…": 3 từ đồng nghĩa / gần nghĩa, kèm loại từ và nghĩa ngắn
 }
 
 /** Một đơn vị sau khi tách từ. isWord = false cho dấu câu, khoảng trắng, chữ Latin. */

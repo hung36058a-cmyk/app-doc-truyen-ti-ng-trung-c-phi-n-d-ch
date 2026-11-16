@@ -630,6 +630,7 @@ button.phrase-part { min-height: 40px; cursor: pointer; }
 .phrase-part-meaning { color: var(--muted); }
 
 /* ---------- v3.0: nghĩa Việt từ điển offline (CVDICT) ---------- */
+.synonyms { display: flex; flex-direction: column; gap: 6px; padding: 8px 0 2px; border-top: 1px solid var(--line); }
 .dict-vi { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); }
 .dict-vi-label { font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
 .dict-vi ol { font-size: 15px; }

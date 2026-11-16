@@ -118,3 +118,18 @@ Trả về DUY NHẤT một JSON, không giải thích thêm:
  "hanviet": "âm Hán Việt của từng chữ trong phrase, cách nhau bằng dấu cách, viết thường",
  "parts": [{"text": "từ nhỏ", "pos": "mã loại từ", "meaning": "nghĩa ngắn"}]}`;
 }
+
+/** 3 từ đồng nghĩa / gần nghĩa của một từ (hoặc cụm), theo đúng nghĩa đang dùng trong câu. */
+export function synonymsPrompt(word: string, meaning: string, sentence: string): string {
+  return `Bạn là từ điển Trung–Việt cho người Việt học tiếng Trung phồn thể (trình độ khoảng HSK4–5).
+Từ: ${word}
+Nghĩa đang dùng: ${meaning || '(theo câu)'}
+Câu chứa từ: ${sentence}
+
+Liệt kê đúng 3 từ ĐỒNG NGHĨA hoặc GẦN NGHĨA với "${word}" theo nghĩa trên, viết bằng chữ PHỒN THỂ, hay gặp trong truyện,
+ưu tiên từ thông dụng trước. Không lặp lại chính "${word}", không đưa từ trái nghĩa.
+Mỗi từ kèm loại từ ("pos", một mã: ${POS_CODES_WORD}; nếu là cụm nhiều từ dùng một trong ${POS_CODES_PHRASE})
+và nghĩa tiếng Việt ngắn (tối đa 6 từ).
+Trả về DUY NHẤT một JSON, không giải thích thêm:
+[{"text": "từ", "pos": "mã", "meaning": "nghĩa ngắn"}]`;
+}
