@@ -1,6 +1,7 @@
 // ui/screens/ReaderScreen.tsx — Trang đọc toàn màn hình: chạm từ -> bong bóng nghĩa nhỏ ngay cạnh từ
-// ("Chi tiết" mở bảng đầy đủ), bấm giữ để TỰ TÔ CHỌN chữ (2 con trỏ như bôi đen bình thường) rồi bấm
+// ("Chi tiết" mở bảng đầy đủ), bấm giữ để TỰ TÔ CHỌN chữ bằng 2 con trỏ của app (hooks/useTextPick) rồi bấm
 // nút "Dịch phần đã chọn" ở đáy màn hình, nhớ vị trí đọc, mục lục.
+// Nút / cử chỉ Quay lại của điện thoại lùi từng bước: đóng lớp đang mở -> trang đọc -> thư viện (hooks/useBack).
 // Thanh tiêu đề: cuộn xuống tự ẩn; chạm giữa trang (cả khi chạm vào chữ) hoặc cuộn ngược lên là hiện lại.
 // Chạm mép trái/phải: lật lên/xuống
 // một trang (tắt được trong Aa). Nút Aa mở thanh chỉnh hiển thị. Cuối chương có thẻ tổng kết từ đã lưu.
@@ -18,6 +19,9 @@ import { TocSheet } from '../components/TocSheet';
 import { displayTitles, isTocPage } from '@/services/tocTitles';
 import { TranslationSheet, type TransMode, type TransSource } from '../components/TranslationSheet';
 import { DisplayBar } from '../components/DisplayBar';
+import { useLongPress } from '../hooks/useLongPress';
+import { useBack } from '../hooks/useBack';
+import { HIGHLIGHT_OK, pickText, useTextPick } from '../hooks/useTextPick';
 import { ChapterNav } from '../components/ChapterNav';
 import { ReaderStatus } from '../components/ReaderStatus';
 import { bookPercent, chapterLengths, chapterPosition, type ChapterPosition } from '@/services/readingProgress';
@@ -51,56 +55,6 @@ const NO_WORDS: Set<string> = new Set();
 /** Phần chữ đã tô chọn. end = vị trí ký tự kết thúc trong đoạn (-1 nếu phần chọn trải qua nhiều đoạn). */
 type Picked = TransSource & { end: number };
 
-/** Đoạn văn (<p data-p>) chứa một điểm của vùng chọn. */
-function paraOf(node: Node): HTMLElement | null {
-  const el = node.nodeType === Node.ELEMENT_NODE ? (node as HTMLElement) : node.parentElement;
-  return el?.closest<HTMLElement>('[data-p]') ?? null;
-}
-
-/** Số ký tự từ đầu đoạn p tới điểm (node, offset) — đo bằng Range nên đúng cả khi điểm nằm trên thẻ thay vì trên chữ. */
-function charsBefore(p: HTMLElement, node: Node, offset: number): number {
-  const r = document.createRange();
-  r.setStart(p, 0);
-  r.setEnd(node, offset);
-  return [...r.toString()].length;
-}
-
-/** Nới vùng [start, end) ra cho trọn từ (theo các <span data-o> của đoạn), để chữ dịch, tô sáng và bong bóng từ khớp nhau. */
-function snapToWords(p: HTMLElement, start: number, end: number): [number, number] {
-  let s = 0;
-  let e = [...(p.textContent ?? '')].length;
-  for (const span of p.querySelectorAll<HTMLElement>('[data-o]')) {
-    const o = Number(span.dataset.o);
-    const oe = o + [...(span.textContent ?? '')].length;
-    if (o <= start) s = o;
-    if (oe >= end) { e = oe; break; }
-  }
-  return [s, e];
-}
-
-/** Đọc vùng chọn hiện tại thành Picked (null = không phải chữ trong truyện). */
-function readSelection(r: Range, raw: string): Picked | null {
-  const pa = paraOf(r.startContainer);
-  if (!pa) return null;
-  const para = Number(pa.dataset.p);
-  let pb = paraOf(r.endContainer);
-  let endAt = pb ? charsBefore(pb, r.endContainer, r.endOffset) : -1;
-  // kéo con trỏ tới cuối dòng thường dừng ở ĐẦU đoạn kế tiếp: coi như cuối đoạn đang chọn
-  if (pb && pb !== pa && endAt === 0 && Number(pb.dataset.p) === para + 1) {
-    pb = pa;
-    endAt = [...(pa.textContent ?? '')].length;
-  }
-  const startAt = charsBefore(pa, r.startContainer, r.startOffset);
-  if (pb === pa && endAt > startAt) {
-    const [s, e] = snapToWords(pa, startAt, endAt);
-    const text = [...(pa.textContent ?? '')].slice(s, e).join('');
-    return text.trim() ? { para, start: s, end: e, text } : null;
-  }
-  // trải qua nhiều đoạn: dịch nguyên phần chữ đã chọn, không tô sáng
-  const text = raw.replace(/\s*\n\s*/g, '\n').trim();
-  return text ? { para, start: -1, end: -1, text } : null;
-}
-
 /** Chạm trong phần này (tính từ mỗi mép, theo bề ngang) thì lật trang thay vì hiện/ẩn thanh tiêu đề. */
 const EDGE_ZONE = 0.3;
 /** Khi lật trang, giữ lại bấy nhiêu px của trang trước để không mất dòng. */
@@ -125,8 +79,7 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
   const [sel, setSel] = useState<Selection | null>(null);
   const [showToc, setShowToc] = useState(false);
   const [showDisplay, setShowDisplay] = useState(false);
-  // phần chữ người dùng đang tô chọn (chưa bấm Dịch) và khung dịch đang mở
-  const [picked, setPicked] = useState<Picked | null>(null);
+  // khung dịch đang mở (phần chữ đã chọn để dịch)
   const [trans, setTrans] = useState<(Picked & { mode: TransMode }) | null>(null);
   const body = useRef<HTMLDivElement>(null);
   const restoreTo = useRef<number | null>(null);
@@ -215,8 +168,7 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
     setSel(null);
     setShowToc(false);
     setTrans(null);
-    setPicked(null);
-    document.getSelection()?.removeAllRanges();
+    picker.clear();
     setChapter(next);
     setChrome(true);
     restoreTo.current = 0;
@@ -260,39 +212,40 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
     setSavedList((list) => list.filter((x) => x.word !== word));
   };
 
-  // người dùng tô chọn chữ (bấm giữ rồi kéo 2 con trỏ của trình duyệt) -> hiện nút "Dịch phần đã chọn"
-  const clearPick = useRef<number>();
-  useEffect(() => {
-    const onSelection = () => {
-      const s = document.getSelection();
-      const el = body.current;
-      const r = s && !s.isCollapsed && s.rangeCount ? s.getRangeAt(0) : null;
-      if (!r || !el || !el.contains(r.commonAncestorContainer) || !s!.toString().trim()) {
-        // chạm nút Dịch cũng làm mất vùng chọn: chờ một chút rồi mới ẩn nút, để cú chạm đó vẫn ăn
-        window.clearTimeout(clearPick.current);
-        clearPick.current = window.setTimeout(() => setPicked(null), 400);
-        return;
-      }
-      window.clearTimeout(clearPick.current);
-      // vùng chọn bắt đầu ở tiêu đề / nút chương... thì không phải chữ để dịch: ẩn nút (không giữ vùng chọn cũ)
-      setPicked(readSelection(r, s!.toString()));
-    };
-    document.addEventListener('selectionchange', onSelection);
-    return () => document.removeEventListener('selectionchange', onSelection);
-  }, []);
+  // bấm giữ một chữ -> chọn từ đó và hiện 2 con trỏ của app để kéo chọn phần muốn dịch
+  const picker = useTextPick(body, `${chapter}|${dictState}|${JSON.stringify(settings.reader)}|${book?.id ?? ''}`);
+  const longPress = useLongPress<{ para: number; at: number; length: number }>(
+    (target) => {
+      const p = target.closest<HTMLElement>('[data-p]');
+      const span = target.closest<HTMLElement>('[data-o]');
+      return p && span ? { para: Number(p.dataset.p), at: Number(span.dataset.o), length: [...(span.textContent ?? '')].length } : null;
+    },
+    ({ para, at, length }) => {
+      setSel(null);
+      setShowDisplay(false);
+      picker.start(para, at, length);
+    },
+  );
 
   const openPicked = () => {
-    if (!picked) return;
-    window.clearTimeout(clearPick.current);
-    document.getSelection()?.removeAllRanges();
+    const pk = picker.pick;
+    if (!pk || !book) return;
+    const text = pickText(book.chapters[chapter].paragraphs, pk);
+    picker.clear();
+    if (!text) return;
+    const single = pk.a.para === pk.b.para;
     setSel(null);
     setShowDisplay(false);
-    setTrans({ ...picked, mode: 'selection' });
-    setPicked(null);
+    setTrans({ para: pk.a.para, start: single ? pk.a.at : -1, end: single ? pk.b.at : -1, text, mode: 'selection' });
   };
 
-  // cú chạm để bỏ vùng chọn thì không tính là chạm vào từ (không mở bong bóng tra từ)
-  const hadSelection = useRef(false);
+  // Quay lại của điện thoại: mỗi lần lùi một bước. Lớp MỞ SAU được đóng TRƯỚC.
+  useBack(true, onClose); // trang đọc -> thư viện
+  useBack(showToc, () => setShowToc(false));
+  useBack(showDisplay, () => setShowDisplay(false));
+  useBack(picker.pick !== null, picker.clear);
+  useBack(trans !== null, () => setTrans(null));
+  useBack(sel !== null, () => setSel(null));
 
   // chạm vào chỗ không phải từ (khoảng trống, dấu câu, lề):
   // đang mở bong bóng -> đóng · mép trái/phải -> lật trang · giữa -> hiện/ẩn thanh tiêu đề
@@ -345,6 +298,8 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
   const sheetOpen = (sel !== null && sel.expanded) || trans !== null || showDisplay;
   const savedHere = book ? savedList.filter((w) => w.bookId === book.id && w.chapterIndex === chapter).map((w) => w.word) : [];
   const transText = trans && ch ? ch.paragraphs[trans.para] ?? '' : '';
+  // máy không có CSS Highlight: tô vùng đang chọn theo từ
+  const pickHl = (i: number): [number, number] => (HIGHLIGHT_OK ? [-1, -1] : picker.rangeIn(picker.pick, i));
   // khoảng ký tự tô sáng khi tra từ: cả cụm nếu AI nhận ra, không thì từ vừa chạm
   const selText = sel && sel.para >= 0 && book ? book.chapters[chapter].paragraphs[sel.para] ?? '' : '';
   const selRange = sel && sel.start >= 0 ? highlightRange(selText, sel.start, sel.end, sel.phrase) : [-1, -1];
@@ -366,16 +321,27 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
         class={`reader-body${sheetOpen ? ' sheet-open' : ''}`}
         ref={body}
         onScroll={onScroll}
-        onPointerDownCapture={() => { hadSelection.current = !(document.getSelection()?.isCollapsed ?? true); }}
         onClickCapture={(e) => {
-          // cú chạm để bỏ vùng chọn, hoặc cú nhả chuột sau khi kéo bôi đen: không tra từ, không lật trang
-          const sel = document.getSelection();
-          const selecting = !!sel && !sel.isCollapsed && !!body.current?.contains(sel.anchorNode);
-          if (hadSelection.current || selecting) e.stopPropagation();
-          hadSelection.current = false;
+          // cú "click" ngay sau khi bấm giữ: bỏ qua
+          if (longPress.consumeClick()) return e.stopPropagation();
+          // đang tô chọn: chạm ra ngoài con trỏ là bỏ chọn (không tra từ, không lật trang)
+          if (picker.pick && !(e.target as HTMLElement).closest('.pick-handle')) {
+            picker.clear();
+            e.stopPropagation();
+          }
         }}
         onClick={onBodyClick}
+        {...longPress.handlers}
       >
+        {picker.pick && picker.boxes && (['a', 'b'] as const).map((w) => (
+          <span
+            key={w}
+            class={`pick-handle pick-handle-${w}`}
+            style={{ left: `${picker.boxes![w].x}px`, top: `${picker.boxes![w].y}px`, height: `${picker.boxes![w].h}px` }}
+            aria-hidden="true"
+            {...picker.handle(w)}
+          />
+        ))}
         {!book || dictState === 'loading' ? (
           <p class="loading">{book ? 'Đang tải từ điển (lần đầu hơi lâu)…' : 'Đang mở truyện…'}</p>
         ) : dictState === 'error' ? (
@@ -407,8 +373,8 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
                   looked={d.showLooked ? looked : NO_WORDS}
                   selStart={sel?.para === i ? selRange[0] : -1}
                   selEnd={sel?.para === i ? selRange[1] : -1}
-                  hlStart={trans?.para === i ? (trans.mode === 'paragraph' ? 0 : trans.start) : -1}
-                  hlEnd={trans?.para === i ? (trans.mode === 'paragraph' ? Infinity : trans.end) : -1}
+                  hlStart={trans?.para === i ? (trans.mode === 'paragraph' ? 0 : trans.start) : pickHl(i)[0]}
+                  hlEnd={trans?.para === i ? (trans.mode === 'paragraph' ? Infinity : trans.end) : pickHl(i)[1]}
                   onTap={onTap}
                 />
               ))}
@@ -427,15 +393,11 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
         />
       )}
 
-      {picked && !trans && !(sel && sel.expanded) && (
-        <button
-          class="btn btn-primary pick-translate"
-          // bấm ngay khi chạm xuống: vùng chọn của trình duyệt mất trước khi "click" kịp chạy
-          onPointerDown={(e) => { e.preventDefault(); openPicked(); }}
-          onClick={openPicked}
-        >
-          Dịch phần đã chọn
-        </button>
+      {picker.pick && !trans && (
+        <div class="pick-bar">
+          <button class="btn pick-cancel" onClick={picker.clear}>Bỏ chọn</button>
+          <button class="btn btn-primary" onClick={openPicked}>Dịch phần đã chọn</button>
+        </div>
       )}
 
       {trans !== null && ch && (

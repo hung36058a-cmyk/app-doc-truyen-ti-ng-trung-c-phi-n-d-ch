@@ -9,6 +9,15 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '3.6',
+    date: '17/11/2026',
+    notes: [
+      'Tô chọn chữ bằng 2 con trỏ riêng của app: bấm giữ một chữ rồi kéo con trỏ. Không còn menu Copy/Share của Android và thanh tìm kiếm Google chen vào',
+      'Nút / cử chỉ Quay lại của điện thoại lùi từng bước: bỏ vùng đang chọn hoặc đóng khung dịch, bảng tra từ → trang đọc → thư viện, không thoát app ngay',
+      'Thêm nút "Bỏ chọn" cạnh nút "Dịch phần đã chọn"; chạm ra ngoài cũng bỏ chọn',
+    ],
+  },
+  {
     version: '3.5',
     date: '17/11/2026',
     notes: [
