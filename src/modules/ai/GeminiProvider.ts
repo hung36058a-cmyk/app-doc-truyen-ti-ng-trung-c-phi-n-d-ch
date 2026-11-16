@@ -53,12 +53,10 @@ export class GeminiProvider implements AiProvider {
         method: 'POST',
         signal: opts.signal,
         headers: { 'content-type': 'application/json', 'x-goog-api-key': this.key.trim() },
-        body: JSON.stringify({
+        body: JSON.stringify({ // (không đặt temperature: Google khuyên để mặc định với Gemini 3)
           contents: [{ role: 'user', parts: [{ text: prompt }] }],
           generationConfig: {
             ...(thinkingConfig(model, quality) && { thinkingConfig: thinkingConfig(model, quality) }),
-            // dịch nhanh: câu trả lời ngắn, ít "sáng tạo" -> ra chữ sớm hơn
-            ...(quality === 'fast' && { temperature: 0.3 }),
           },
         }),
       });

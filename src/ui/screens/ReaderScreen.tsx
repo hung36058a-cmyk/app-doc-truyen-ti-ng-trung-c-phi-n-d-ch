@@ -51,21 +51,54 @@ const NO_WORDS: Set<string> = new Set();
 /** Phần chữ đã tô chọn. end = vị trí ký tự kết thúc trong đoạn (-1 nếu phần chọn trải qua nhiều đoạn). */
 type Picked = TransSource & { end: number };
 
-/** Vị trí ký tự (trong đoạn) của một điểm trong vùng chọn: dựa vào data-o của <span> chứa điểm đó. */
-function pointOffset(node: Node, offset: number): { para: number; at: number } | null {
-  let el: HTMLElement | null;
-  let inner = 0;
-  if (node.nodeType === Node.TEXT_NODE) {
-    el = node.parentElement;
-    inner = [...(node.textContent ?? '').slice(0, offset)].length;
-  } else {
-    const child = (node as Element).childNodes[offset] as Node | undefined;
-    el = (child?.nodeType === Node.ELEMENT_NODE ? (child as HTMLElement) : child?.parentElement) ?? (node as HTMLElement);
+/** Đoạn văn (<p data-p>) chứa một điểm của vùng chọn. */
+function paraOf(node: Node): HTMLElement | null {
+  const el = node.nodeType === Node.ELEMENT_NODE ? (node as HTMLElement) : node.parentElement;
+  return el?.closest<HTMLElement>('[data-p]') ?? null;
+}
+
+/** Số ký tự từ đầu đoạn p tới điểm (node, offset) — đo bằng Range nên đúng cả khi điểm nằm trên thẻ thay vì trên chữ. */
+function charsBefore(p: HTMLElement, node: Node, offset: number): number {
+  const r = document.createRange();
+  r.setStart(p, 0);
+  r.setEnd(node, offset);
+  return [...r.toString()].length;
+}
+
+/** Nới vùng [start, end) ra cho trọn từ (theo các <span data-o> của đoạn), để chữ dịch, tô sáng và bong bóng từ khớp nhau. */
+function snapToWords(p: HTMLElement, start: number, end: number): [number, number] {
+  let s = 0;
+  let e = [...(p.textContent ?? '')].length;
+  for (const span of p.querySelectorAll<HTMLElement>('[data-o]')) {
+    const o = Number(span.dataset.o);
+    const oe = o + [...(span.textContent ?? '')].length;
+    if (o <= start) s = o;
+    if (oe >= end) { e = oe; break; }
   }
-  const span = el?.closest<HTMLElement>('[data-o]');
-  const p = el?.closest<HTMLElement>('[data-p]');
-  if (!p) return null;
-  return { para: Number(p.dataset.p), at: span ? Number(span.dataset.o) + inner : 0 };
+  return [s, e];
+}
+
+/** Đọc vùng chọn hiện tại thành Picked (null = không phải chữ trong truyện). */
+function readSelection(r: Range, raw: string): Picked | null {
+  const pa = paraOf(r.startContainer);
+  if (!pa) return null;
+  const para = Number(pa.dataset.p);
+  let pb = paraOf(r.endContainer);
+  let endAt = pb ? charsBefore(pb, r.endContainer, r.endOffset) : -1;
+  // kéo con trỏ tới cuối dòng thường dừng ở ĐẦU đoạn kế tiếp: coi như cuối đoạn đang chọn
+  if (pb && pb !== pa && endAt === 0 && Number(pb.dataset.p) === para + 1) {
+    pb = pa;
+    endAt = [...(pa.textContent ?? '')].length;
+  }
+  const startAt = charsBefore(pa, r.startContainer, r.startOffset);
+  if (pb === pa && endAt > startAt) {
+    const [s, e] = snapToWords(pa, startAt, endAt);
+    const text = [...(pa.textContent ?? '')].slice(s, e).join('');
+    return text.trim() ? { para, start: s, end: e, text } : null;
+  }
+  // trải qua nhiều đoạn: dịch nguyên phần chữ đã chọn, không tô sáng
+  const text = raw.replace(/\s*\n\s*/g, '\n').trim();
+  return text ? { para, start: -1, end: -1, text } : null;
 }
 
 /** Chạm trong phần này (tính từ mỗi mép, theo bề ngang) thì lật trang thay vì hiện/ẩn thanh tiêu đề. */
@@ -181,6 +214,9 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
     const next = Math.max(0, Math.min(book.chapters.length - 1, i));
     setSel(null);
     setShowToc(false);
+    setTrans(null);
+    setPicked(null);
+    document.getSelection()?.removeAllRanges();
     setChapter(next);
     setChrome(true);
     restoreTo.current = 0;
@@ -238,16 +274,8 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
         return;
       }
       window.clearTimeout(clearPick.current);
-      const a = pointOffset(r.startContainer, r.startOffset);
-      const b = pointOffset(r.endContainer, r.endOffset);
-      if (!a) return;
-      const single = b && b.para === a.para && b.at > a.at;
-      setPicked({
-        para: a.para,
-        start: single ? a.at : -1,
-        end: single ? b!.at : -1,
-        text: s!.toString().replace(/\s*\n\s*/g, '\n').trim(),
-      });
+      // vùng chọn bắt đầu ở tiêu đề / nút chương... thì không phải chữ để dịch: ẩn nút (không giữ vùng chọn cũ)
+      setPicked(readSelection(r, s!.toString()));
     };
     document.addEventListener('selectionchange', onSelection);
     return () => document.removeEventListener('selectionchange', onSelection);
@@ -339,7 +367,13 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
         ref={body}
         onScroll={onScroll}
         onPointerDownCapture={() => { hadSelection.current = !(document.getSelection()?.isCollapsed ?? true); }}
-        onClickCapture={(e) => { if (hadSelection.current) { hadSelection.current = false; e.stopPropagation(); } }}
+        onClickCapture={(e) => {
+          // cú chạm để bỏ vùng chọn, hoặc cú nhả chuột sau khi kéo bôi đen: không tra từ, không lật trang
+          const sel = document.getSelection();
+          const selecting = !!sel && !sel.isCollapsed && !!body.current?.contains(sel.anchorNode);
+          if (hadSelection.current || selecting) e.stopPropagation();
+          hadSelection.current = false;
+        }}
         onClick={onBodyClick}
       >
         {!book || dictState === 'loading' ? (
@@ -409,6 +443,7 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
           source={trans}
           paragraph={transText}
           previous={trans.start > 0 ? [...transText].slice(0, trans.start).join('') : ch.paragraphs[trans.para - 1] ?? ''}
+          previousParagraph={ch.paragraphs[trans.para - 1] ?? ''}
           mode={trans.mode}
           onMode={(mode) => setTrans({ ...trans, mode })}
           onPickWord={(word, at) => setSel({ para: trans.para, token: tokenAt(transText, at), start: at, end: at + [...word].length, word, exact: false, sentence: sentenceAt(transText, at), expanded: true })}

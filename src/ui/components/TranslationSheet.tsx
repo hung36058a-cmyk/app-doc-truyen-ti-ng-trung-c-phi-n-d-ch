@@ -20,6 +20,7 @@ interface Props {
   source: TransSource;
   paragraph: string; // đoạn chứa phần chọn
   previous: string; // phần chữ ngay trước, làm ngữ cảnh cho AI
+  previousParagraph: string; // đoạn ngay trước, làm ngữ cảnh khi dịch cả đoạn
   mode: TransMode;
   onMode: (m: TransMode) => void;
   onPickWord: (word: string, offsetInParagraph: number) => void;
@@ -50,7 +51,7 @@ export function TranslationSheet(p: Props) {
     .map((t) => dictionary.lookup(t.text)?.senses[0]?.pinyin.replace(/\s+/g, '') ?? t.text)
     .join(' ');
 
-  const target = p.mode === 'paragraph' ? { text: p.paragraph, context: '' } : { text: p.source.text, context: p.previous };
+  const target = p.mode === 'paragraph' ? { text: p.paragraph, context: p.previousParagraph } : { text: p.source.text, context: p.previous };
 
   useEffect(() => {
     const id = ++run.current; // bỏ kết quả cũ khi đã đổi phần chọn, đổi chế độ hoặc đổi ngôn ngữ
