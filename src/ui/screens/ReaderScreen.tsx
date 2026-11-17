@@ -5,6 +5,7 @@
 // Thanh tiêu đề: cuộn xuống tự ẩn; chạm giữa trang (cả khi chạm vào chữ) hoặc cuộn ngược lên là hiện lại.
 // Chạm mép trái/phải: lật lên/xuống
 // một trang (tắt được trong Aa). Nút Aa mở thanh chỉnh hiển thị. Cuối chương có thẻ tổng kết từ đã lưu.
+// Thanh tiến độ ở đáy có nút kéo nhanh: kéo nút sang trái/phải để chạy tới đâu đó trong chương (seekTo).
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { AppSettings, Book, DictEntry, ReaderDisplay, SavedWord, VietMeaning } from '@/core/types';
@@ -84,6 +85,7 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
   const body = useRef<HTMLDivElement>(null);
   const restoreTo = useRef<number | null>(null);
   const [pos, setPos] = useState<ChapterPosition>({ page: 1, pages: 1, fraction: 0 });
+  const seeking = useRef(false); // đang kéo thanh kéo nhanh: đừng ẩn/hiện thanh tiêu đề theo cuộn
 
   // tải truyện, vị trí đọc và từ đã lưu
   useEffect(() => {
@@ -113,15 +115,24 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
 
   // thanh tiến độ: tính lại trang/phần trăm khi cuộn, đổi chương, đổi cỡ chữ hay xoay màn hình
   const posFrame = useRef<number>();
+  /** Khi khung tra từ/dịch mở, chương được đệm thêm ở cuối: phần đệm đó không tính vào chương. */
+  const extraBottom = (el: HTMLElement) =>
+    el.classList.contains('sheet-open') ? Math.max(0, parseFloat(getComputedStyle(el).paddingBottom) - 40) : 0;
   const updatePos = () => {
     window.cancelAnimationFrame(posFrame.current!);
     posFrame.current = window.requestAnimationFrame(() => {
       const el = body.current;
       if (!el) return;
-      // khi khung tra từ/dịch mở, chương được đệm thêm ở cuối: không tính phần đệm đó
-      const extra = el.classList.contains('sheet-open') ? Math.max(0, parseFloat(getComputedStyle(el).paddingBottom) - 40) : 0;
-      setPos(chapterPosition(el, extra));
+      setPos(chapterPosition(el, extraBottom(el)));
     });
+  };
+
+  /** Thanh kéo nhanh: chạy tới phần `fraction` (0..1) của chương. */
+  const seekTo = (fraction: number) => {
+    const el = body.current;
+    if (!el) return;
+    const max = Math.max(0, el.scrollHeight - extraBottom(el) - el.clientHeight);
+    el.scrollTop = Math.min(1, Math.max(0, fraction)) * max;
   };
   useEffect(() => {
     updatePos();
@@ -143,7 +154,7 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
       // Thanh ẩn/hiện làm khung đọc đổi chiều cao -> trình duyệt tự dịch scrollTop: bỏ qua các lần cuộn
       // ngay sau đó và lúc đang chạm đáy chương, nếu không thanh sẽ nhấp nháy.
       const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 4;
-      if (Date.now() > chromeSettle.current && !atBottom) {
+      if (!seeking.current && Date.now() > chromeSettle.current && !atBottom) {
         if (el.scrollTop < 8 || delta < -10) showChrome(true);
         else if (delta > 12) showChrome(false);
       }
@@ -390,6 +401,9 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
           page={pos.page}
           pages={pos.pages}
           percent={bookPercent(lengths, chapter, pos.fraction)}
+          fraction={pos.fraction}
+          onSeek={seekTo}
+          onSeeking={(active) => { seeking.current = active; if (active) setSel(null); }}
         />
       )}
 

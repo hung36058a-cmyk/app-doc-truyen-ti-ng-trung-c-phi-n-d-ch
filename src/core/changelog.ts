@@ -9,6 +9,13 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '3.8',
+    date: '17/11/2026',
+    notes: [
+      'Thanh kéo nhanh ở đáy trang đọc: đặt ngón tay lên nút tròn rồi kéo sang trái/phải để chạy ngay tới chỗ muốn đọc trong chương (có hiện số trang khi kéo), không phải vuốt từng màn hình',
+    ],
+  },
+  {
     version: '3.7',
     date: '17/11/2026',
     notes: [
