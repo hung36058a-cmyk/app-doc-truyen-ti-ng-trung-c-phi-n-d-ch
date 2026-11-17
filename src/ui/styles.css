@@ -707,17 +707,17 @@ button.phrase-part { min-height: 40px; cursor: pointer; }
 /* ---------- v3.8: thanh kéo nhanh DỌC ở mép phải trang đọc ---------- */
 .reader { position: relative; }
 .vseek {
-  position: absolute; right: 0; top: 64px; bottom: calc(30px + env(safe-area-inset-bottom, 0px)); width: 36px; z-index: 4;
+  position: absolute; right: 0; top: 64px; bottom: calc(30px + env(safe-area-inset-bottom, 0px)); width: 24px; z-index: 4;
   touch-action: none; outline-offset: -2px;
 }
 .vseek-track { position: absolute; inset: 0; }
 .vseek-thumb {
-  position: absolute; right: 6px; width: 8px; border-radius: 4px; background: var(--accent); opacity: 0.6;
+  position: absolute; right: 4px; width: 4px; border-radius: 2px; background: var(--accent); opacity: 0.5;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4); transition: width 120ms ease, opacity 120ms ease;
 }
-.vseek.is-dragging .vseek-thumb { width: 16px; opacity: 1; }
+.vseek.is-dragging .vseek-thumb { width: 6px; opacity: 1; }
 .vseek-tip {
-  position: absolute; right: 26px; top: 50%; transform: translateY(-50%); padding: 6px 10px; border-radius: 10px;
+  position: absolute; right: 16px; top: 50%; transform: translateY(-50%); padding: 6px 10px; border-radius: 10px;
   background: var(--surface-2); color: var(--fg); border: 1px solid var(--line-strong);
   font: 600 14px/1 var(--font-ui); font-variant-numeric: tabular-nums; white-space: nowrap; pointer-events: none;
 }

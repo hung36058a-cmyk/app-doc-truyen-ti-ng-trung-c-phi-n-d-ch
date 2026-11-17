@@ -12,7 +12,7 @@ interface Props {
   onSeeking: (active: boolean) => void;
 }
 
-const THUMB = 56; // chiều cao nút (px)
+const THUMB = 36; // chiều cao nút (px)
 
 export function ReaderSeek({ page, pages, fraction, onSeek, onSeeking }: Props) {
   const track = useRef<HTMLDivElement>(null);

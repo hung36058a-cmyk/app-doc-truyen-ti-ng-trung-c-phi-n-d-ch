@@ -1,15 +1,14 @@
 // ui/screens/ReaderScreen.tsx — Trang đọc toàn màn hình: chạm từ -> bong bóng nghĩa nhỏ ngay cạnh từ
-// ("Chi tiết" mở bảng đầy đủ), bấm giữ để TỰ TÔ CHỌN chữ bằng 2 con trỏ của app (hooks/useTextPick) rồi bấm
+// ("Chi tiết" mở bảng đầy đủ), bấm giữ để tô sẵn CẢ VẾ CÂU (services/sentence clauseAt) rồi TỰ CHỈNH bằng 2 con trỏ của app (hooks/useTextPick) rồi bấm
 // nút "Dịch phần đã chọn" ở đáy màn hình, nhớ vị trí đọc, mục lục.
 // Nút / cử chỉ Quay lại của điện thoại lùi từng bước: đóng lớp đang mở -> trang đọc -> thư viện (hooks/useBack).
 // Thanh tiêu đề: cuộn xuống tự ẩn; chạm giữa trang (cả khi chạm vào chữ) hoặc cuộn ngược lên là hiện lại.
-// Chạm mép trái/phải: lật lên/xuống
-// một trang (tắt được trong Aa). Nút Aa mở thanh chỉnh hiển thị. Cuối chương có thẻ tổng kết từ đã lưu.
+// Không có lật trang tự động: cuộn hoàn toàn bằng tay (hoặc kéo thanh dọc). Nút Aa mở thanh chỉnh hiển thị. Cuối chương có thẻ tổng kết từ đã lưu.
 // Mép phải có thanh kéo nhanh dọc (ReaderSeek): kéo nút lên/xuống để chạy tới đâu đó trong chương (seekTo).
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { AppSettings, Book, DictEntry, ReaderDisplay, SavedWord, VietMeaning } from '@/core/types';
-import { sentenceAt } from '@/services/sentence';
+import { clauseAt, sentenceAt } from '@/services/sentence';
 import { highlightRange } from '@/services/phrase';
 import { useServices } from '../context';
 import { Paragraph } from '../components/Paragraph';
@@ -57,10 +56,6 @@ const NO_WORDS: Set<string> = new Set();
 /** Phần chữ đã tô chọn. end = vị trí ký tự kết thúc trong đoạn (-1 nếu phần chọn trải qua nhiều đoạn). */
 type Picked = TransSource & { end: number };
 
-/** Chạm trong phần này (tính từ mỗi mép, theo bề ngang) thì lật trang thay vì hiện/ẩn thanh tiêu đề. */
-const EDGE_ZONE = 0.3;
-/** Khi lật trang, giữ lại bấy nhiêu px của trang trước để không mất dòng. */
-const PAGE_OVERLAP = 48;
 
 export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose }: Props) {
   const { storage, segmenter } = useServices();
@@ -235,7 +230,11 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
     ({ para, at, length }) => {
       setSel(null);
       setShowDisplay(false);
-      picker.start(para, at, length);
+      // tô sẵn cả vế câu chứa chữ vừa giữ (ngắt ở mọi dấu câu / ngoặc kép), không chỉ một từ
+      const text = book?.chapters[chapter]?.paragraphs[para] ?? '';
+      const c = clauseAt(text, at);
+      if (c) picker.start(para, c[0], c[1] - c[0]);
+      else picker.start(para, at, length);
     },
   );
 
@@ -260,18 +259,11 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
   useBack(sel !== null, () => setSel(null));
 
   // chạm vào chỗ không phải từ (khoảng trống, dấu câu, lề):
-  // đang mở bong bóng -> đóng · mép trái/phải -> lật trang · giữa -> hiện/ẩn thanh tiêu đề
+  // đang mở bong bóng -> đóng · còn lại -> hiện/ẩn thanh tiêu đề (KHÔNG BAO GIỜ tự cuộn trang)
   const onBodyClick = (e: MouseEvent) => {
     const t = e.target as HTMLElement;
     if (t.closest('[data-t], button, a, .chapter-title, .chapter-end, .pick-handle')) return;
     if (sel) return setSel(null);
-    const el = body.current;
-    const x = e.clientX / document.documentElement.clientWidth;
-    if (el && settings.reader.tapPaging && (x < EDGE_ZONE || x > 1 - EDGE_ZONE)) {
-      const dir = x < EDGE_ZONE ? -1 : 1;
-      el.scrollBy({ top: dir * (el.clientHeight - PAGE_OVERLAP), behavior: 'smooth' });
-      return;
-    }
     setChrome((v) => !v);
   };
 

@@ -7,7 +7,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   theme: 'system',
   aiKeys: [],
   aiMode: 'save',
-  reader: { fontSize: 21, lineHeight: 1.9, paraSpacing: 0.9, margin: 24, font: 'serif', paper: 'auto', tapPaging: true, showLooked: true },
+  reader: { fontSize: 21, lineHeight: 1.9, paraSpacing: 0.9, margin: 24, font: 'serif', paper: 'auto', showLooked: true },
   ankiDeck: 'zhongwenB1',
   autoTraditional: true,
 };
