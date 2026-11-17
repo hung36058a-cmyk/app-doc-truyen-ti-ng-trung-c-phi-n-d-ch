@@ -33,9 +33,20 @@ if (typeof window !== 'undefined') {
     if (ignore > 0) { ignore--; return; }
     if (!trapped) return; // điều hướng bình thường (đổi tab bằng hash)
     trapped = false;
+    const remaining = layers.length - 1;
     layers[layers.length - 1]?.();
+    // còn lớp khác bên dưới: đặt bẫy lại NGAY, để bấm Quay lại liên tiếp thật nhanh cũng không lọt ra ngoài
+    if (remaining > 0) {
+      history.pushState({ backTrap: true }, '');
+      trapped = true;
+    }
     schedule();
   });
+  // mục bẫy còn sót từ lần trước (tải lại trang khi đang mở trang đọc): gỡ đi để không có lần Quay lại "chết"
+  if ((history.state as { backTrap?: boolean } | null)?.backTrap) {
+    ignore++;
+    history.back();
+  }
 }
 
 /** Khi active = true, một lần Quay lại sẽ gọi onBack (thường là đóng lớp đó) thay vì rời trang. */

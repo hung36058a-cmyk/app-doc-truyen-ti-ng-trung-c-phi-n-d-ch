@@ -45,8 +45,39 @@ function toRange(root: HTMLElement, a: Pos, b: Pos): Range | null {
   return r;
 }
 
+/** Chữ đầu tiên của vùng chọn bắt đầu ở a (a ở cuối đoạn thì là chữ đầu đoạn kế). */
+function firstChar(root: HTMLElement, a: Pos): Pos {
+  const p = paraEl(root, a.para);
+  return p && a.at >= paraLen(p) && paraEl(root, a.para + 1) ? { para: a.para + 1, at: 0 } : a;
+}
+
+/** Chữ cuối cùng của vùng chọn kết thúc ở b (b ở đầu đoạn thì là chữ cuối đoạn trước). */
+function lastChar(root: HTMLElement, b: Pos): Pos {
+  if (b.at > 0) return { para: b.para, at: b.at - 1 };
+  const prev = paraEl(root, b.para - 1);
+  return prev ? { para: b.para - 1, at: Math.max(0, paraLen(prev) - 1) } : b;
+}
+
+/** Khung trên màn hình của MỘT chữ. */
+function charRect(root: HTMLElement, pos: Pos): DOMRect | null {
+  const r = toRange(root, pos, { para: pos.para, at: pos.at + 1 });
+  const rects = r ? [...r.getClientRects()].filter((x) => x.height > 0.5) : [];
+  return rects[0] ?? null;
+}
+
 /** Điểm trong chương nằm dưới toạ độ màn hình (x, y); null nếu không trúng chữ nào của truyện. */
 function posAt(root: HTMLElement, x: number, y: number): Pos | null {
+  // con trỏ và thanh nút nằm đè lên chữ: tạm cho chúng "trong suốt" với phép dò vị trí, nếu không sẽ dò trúng chúng
+  const overlays = [...document.querySelectorAll<HTMLElement>('.pick-handle, .pick-bar')];
+  overlays.forEach((el) => { el.style.pointerEvents = 'none'; });
+  try {
+    return textPosAt(root, x, y);
+  } finally {
+    overlays.forEach((el) => { el.style.pointerEvents = ''; });
+  }
+}
+
+function textPosAt(root: HTMLElement, x: number, y: number): Pos | null {
   const doc = document as Document & {
     caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null;
     caretRangeFromPoint?: (x: number, y: number) => Range | null;
@@ -90,6 +121,7 @@ export function pickText(paragraphs: string[], pick: Pick): string {
 export function useTextPick(body: RefObject<HTMLDivElement>, layoutKey: unknown) {
   const [pick, setPick] = useState<Pick | null>(null);
   const [boxes, setBoxes] = useState<{ a: HandleBox; b: HandleBox } | null>(null);
+  const [resized, setResized] = useState(0);
   const drag = useRef<{ which: 'a' | 'b'; dx: number; dy: number } | null>(null);
   const current = useRef<Pick | null>(null);
   current.current = pick;
@@ -102,15 +134,23 @@ export function useTextPick(body: RefObject<HTMLDivElement>, layoutKey: unknown)
       if (range) CSS.highlights.set(NAME, new Highlight(range));
       else CSS.highlights.delete(NAME);
     }
-    if (!root || !range) return setBoxes(null);
-    const rects = [...range.getClientRects()].filter((r) => r.width > 0.5 && r.height > 0.5);
-    if (!rects.length) return setBoxes(null);
+    if (!root || !range || !pick) return setBoxes(null);
+    // vị trí con trỏ lấy từ đúng MỘT chữ ở mỗi đầu (chữ đầu tiên / chữ cuối cùng của vùng chọn),
+    // vì khung của cả vùng chọn có thể gồm nguyên khối đoạn văn
+    const first = charRect(root, firstChar(root, pick.a));
+    const last = charRect(root, lastChar(root, pick.b));
+    if (!first || !last) return setBoxes(null);
     const frame = root.getBoundingClientRect();
-    const first = rects[0];
-    const lastRect = rects[rects.length - 1];
     const toBox = (x: number, r: DOMRect): HandleBox => ({ x: x - frame.left + root.scrollLeft, y: r.top - frame.top + root.scrollTop, h: r.height });
-    setBoxes({ a: toBox(first.left, first), b: toBox(lastRect.right, lastRect) });
-  }, [pick, layoutKey]);
+    setBoxes({ a: toBox(first.left, first), b: toBox(last.right, last) });
+  }, [pick, layoutKey, resized]);
+
+  // xoay màn hình / đổi cỡ cửa sổ: đặt lại con trỏ
+  useEffect(() => {
+    const onResize = () => setResized((n) => n + 1);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   useEffect(() => () => { if (HIGHLIGHT_OK) CSS.highlights.delete(NAME); }, []);
 

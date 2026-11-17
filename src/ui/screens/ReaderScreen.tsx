@@ -21,7 +21,7 @@ import { TranslationSheet, type TransMode, type TransSource } from '../component
 import { DisplayBar } from '../components/DisplayBar';
 import { useLongPress } from '../hooks/useLongPress';
 import { useBack } from '../hooks/useBack';
-import { HIGHLIGHT_OK, pickText, useTextPick } from '../hooks/useTextPick';
+import { HIGHLIGHT_OK, pickText, useTextPick, type Pick } from '../hooks/useTextPick';
 import { ChapterNav } from '../components/ChapterNav';
 import { ReaderStatus } from '../components/ReaderStatus';
 import { bookPercent, chapterLengths, chapterPosition, type ChapterPosition } from '@/services/readingProgress';
@@ -80,7 +80,7 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
   const [showToc, setShowToc] = useState(false);
   const [showDisplay, setShowDisplay] = useState(false);
   // khung dịch đang mở (phần chữ đã chọn để dịch)
-  const [trans, setTrans] = useState<(Picked & { mode: TransMode }) | null>(null);
+  const [trans, setTrans] = useState<(Picked & { mode: TransMode; span: Pick }) | null>(null);
   const body = useRef<HTMLDivElement>(null);
   const restoreTo = useRef<number | null>(null);
   const [pos, setPos] = useState<ChapterPosition>({ page: 1, pages: 1, fraction: 0 });
@@ -236,7 +236,7 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
     const single = pk.a.para === pk.b.para;
     setSel(null);
     setShowDisplay(false);
-    setTrans({ para: pk.a.para, start: single ? pk.a.at : -1, end: single ? pk.b.at : -1, text, mode: 'selection' });
+    setTrans({ para: pk.a.para, start: single ? pk.a.at : -1, end: single ? pk.b.at : -1, text, mode: 'selection', span: pk });
   };
 
   // Quay lại của điện thoại: mỗi lần lùi một bước. Lớp MỞ SAU được đóng TRƯỚC.
@@ -251,7 +251,7 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
   // đang mở bong bóng -> đóng · mép trái/phải -> lật trang · giữa -> hiện/ẩn thanh tiêu đề
   const onBodyClick = (e: MouseEvent) => {
     const t = e.target as HTMLElement;
-    if (t.closest('[data-t], button, a, .chapter-title, .chapter-end')) return;
+    if (t.closest('[data-t], button, a, .chapter-title, .chapter-end, .pick-handle')) return;
     if (sel) return setSel(null);
     const el = body.current;
     const x = e.clientX / document.documentElement.clientWidth;
@@ -373,8 +373,8 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
                   looked={d.showLooked ? looked : NO_WORDS}
                   selStart={sel?.para === i ? selRange[0] : -1}
                   selEnd={sel?.para === i ? selRange[1] : -1}
-                  hlStart={trans?.para === i ? (trans.mode === 'paragraph' ? 0 : trans.start) : pickHl(i)[0]}
-                  hlEnd={trans?.para === i ? (trans.mode === 'paragraph' ? Infinity : trans.end) : pickHl(i)[1]}
+                  hlStart={trans ? (trans.mode === 'paragraph' ? (trans.para === i ? 0 : -1) : picker.rangeIn(trans.span, i)[0]) : pickHl(i)[0]}
+                  hlEnd={trans ? (trans.mode === 'paragraph' ? (trans.para === i ? Infinity : -1) : picker.rangeIn(trans.span, i)[1]) : pickHl(i)[1]}
                   onTap={onTap}
                 />
               ))}
