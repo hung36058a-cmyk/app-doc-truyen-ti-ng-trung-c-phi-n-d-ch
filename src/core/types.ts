@@ -126,7 +126,6 @@ export interface ReaderDisplay {
   margin: number; // px, lề trái/phải
   font: ReaderFont;
   paper: ReaderPaper; // 'auto' = theo giao diện sáng/tối của app
-  tapPaging: boolean; // chạm mép trái/phải (chỗ không có chữ) để cuộn lên/xuống một trang
   showLooked: boolean; // gạch chân chấm dưới các từ đã tra
 }
 

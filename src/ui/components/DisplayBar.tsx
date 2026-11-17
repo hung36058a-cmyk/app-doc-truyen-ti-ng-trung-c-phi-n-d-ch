@@ -103,14 +103,6 @@ export function DisplayBar({ value, onChange, lookedCount, onClearLooked, onClos
             Xóa gạch chân của {lookedCount} từ đã tra
           </button>
         )}
-
-        <div class="choice-row" role="group" aria-label="Chạm mép để lật trang">
-          <span>Chạm mép để lật trang</span>
-          <div class="seg">
-            <button aria-pressed={value.tapPaging} onClick={() => onChange({ tapPaging: true })}>Bật</button>
-            <button aria-pressed={!value.tapPaging} onClick={() => onChange({ tapPaging: false })}>Tắt</button>
-          </div>
-        </div>
       </section>
     </>
   );

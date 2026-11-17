@@ -9,6 +9,15 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '3.9',
+    date: '17/11/2026',
+    notes: [
+      'Bỏ hẳn "chạm mép để lật trang": chạm vào khoảng trống không còn làm trang tự trượt, chỉ cuộn bằng tay',
+      'Thanh kéo nhanh dọc nhỏ gọn hơn (mảnh và ngắn hơn)',
+      'Bấm giữ một chữ là tô sẵn cả câu chứa nó; câu được ngắt ở mọi dấu (chấm, phẩy, hai chấm, chấm phẩy, ngoặc kép 「」…), vẫn kéo 2 con trỏ để chỉnh được',
+    ],
+  },
+  {
     version: '3.8',
     date: '17/11/2026',
     notes: [

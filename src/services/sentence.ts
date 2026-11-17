@@ -1,5 +1,6 @@
 // services/sentence.ts — Cắt câu trong một đoạn văn.
 // - sentenceAt: câu ĐẦY ĐỦ (tới dấu chấm) chứa từ được chạm — làm ngữ cảnh cho AI giải nghĩa từ.
+// - clauseAt: vế câu chứa chữ được bấm giữ, ngắt ở MỌI dấu (chấm, phẩy, hai chấm, chấm phẩy, ngoặc kép…) — để tô chọn.
 // - splitSentences: chia nhỏ theo cả dấu phẩy / hai chấm để dịch từng vế ngắn trong khung dịch câu.
 
 const ENDERS = /[。！？!?；…]/;
@@ -16,6 +17,21 @@ export function sentenceAt(paragraph: string, offset: number): string {
   while (end < chars.length && !ENDERS.test(chars[end])) end++;
   while (end < chars.length && (ENDERS.test(chars[end]) || CLOSERS.test(chars[end]))) end++;
   return chars.slice(start, end).join('').replace(/^[」』"”\s]+/, '').trim();
+}
+
+/** Dấu ngắt khi bấm giữ để tô chọn: mọi dấu câu và dấu ngoặc kép / ngoặc đơn. */
+const PICK_BREAKS = /[。．.！？!?；;…，,：:、「」『』"“”‘’（）()《》〈〉—\s]/;
+
+/** Vế câu chứa ký tự `offset`: [start, end) theo ký tự, không gồm dấu ngắt hai đầu.
+ *  null nếu `offset` rơi đúng vào một dấu. */
+export function clauseAt(paragraph: string, offset: number): [number, number] | null {
+  const chars = [...paragraph];
+  if (offset < 0 || offset >= chars.length || PICK_BREAKS.test(chars[offset])) return null;
+  let start = offset;
+  while (start > 0 && !PICK_BREAKS.test(chars[start - 1])) start--;
+  let end = offset + 1;
+  while (end < chars.length && !PICK_BREAKS.test(chars[end])) end++;
+  return [start, end];
 }
 
 export interface SentenceSpan {
