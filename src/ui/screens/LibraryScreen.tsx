@@ -156,7 +156,7 @@ export function LibraryScreen({ onOpen, autoTraditional }: { onOpen: (bookId: st
 
       {recent && (
         <button class="continue-card" onClick={() => onOpen(recent.id)}>
-          <Cover title={recent.title} showTitle={false} />
+          <Cover title={recent.title} image={recent.cover} />
           <div class="continue-info">
             <span class="continue-kicker">Đọc tiếp</span>
             <div class="continue-title">{recent.title}</div>
@@ -201,7 +201,7 @@ export function LibraryScreen({ onOpen, autoTraditional }: { onOpen: (bookId: st
                   onContextMenu={(e) => { e.preventDefault(); setManaging(b); }}
                 >
                   <div class="book-tile-cover">
-                    <Cover title={b.title} />
+                    <Cover title={b.title} image={b.cover} />
                     {pct > 0 && <span class="tile-progress" style={{ width: `${pct}%` }} />}
                   </div>
                   <span class="book-tile-title">{b.title}</span>

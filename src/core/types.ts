@@ -21,6 +21,7 @@ export interface Book {
   chapters: Chapter[];
   toc: TocItem[];
   addedAt: number;
+  cover?: string; // ảnh bìa lấy từ file EPUB (data URL đã thu nhỏ); không có thì app tự vẽ bìa
 }
 
 /** Thông tin rút gọn để hiện ở Thư viện (không kèm nội dung chương). */
@@ -30,6 +31,7 @@ export interface BookSummary {
   author: string;
   chapterCount: number;
   addedAt: number;
+  cover?: string;
 }
 
 /** Vị trí đang đọc của một truyện. */

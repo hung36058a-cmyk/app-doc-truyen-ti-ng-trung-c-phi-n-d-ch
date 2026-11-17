@@ -9,6 +9,23 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '3.7',
+    date: '17/11/2026',
+    notes: [
+      'Giao diện tối mới "Đêm xanh": nền xanh đêm, điểm nhấn vàng kim (thư viện, sổ từ, cài đặt và trang đọc nền tối)',
+      'Bìa truyện hiện đủ tên truyện viết dọc thay cho một chữ; truyện EPUB tải từ bản này trở đi sẽ dùng ảnh bìa có sẵn trong file',
+    ],
+  },
+  {
+    version: '3.6',
+    date: '17/11/2026',
+    notes: [
+      'Tô chọn chữ bằng 2 con trỏ riêng của app: bấm giữ một chữ rồi kéo con trỏ. Không còn menu Copy/Share của Android và thanh tìm kiếm Google chen vào',
+      'Nút / cử chỉ Quay lại của điện thoại lùi từng bước: bỏ vùng đang chọn hoặc đóng khung dịch, bảng tra từ → trang đọc → thư viện, không thoát app ngay',
+      'Thêm nút "Bỏ chọn" cạnh nút "Dịch phần đã chọn"; chạm ra ngoài cũng bỏ chọn',
+    ],
+  },
+  {
     version: '3.5',
     date: '17/11/2026',
     notes: [

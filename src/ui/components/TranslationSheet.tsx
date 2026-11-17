@@ -114,7 +114,8 @@ export function TranslationSheet(p: Props) {
 
         <div class="trans-actions">
           {p.mode === 'selection' ? (
-            <button class="btn" onClick={() => p.onMode('paragraph')}>Dịch cả đoạn</button>
+            // phần chọn trải qua nhiều đoạn thì không có "cả đoạn" nào để dịch
+            p.source.start >= 0 && <button class="btn" onClick={() => p.onMode('paragraph')}>Dịch cả đoạn</button>
           ) : (
             <button class="btn" onClick={() => p.onMode('selection')}>Quay lại phần đã chọn</button>
           )}
