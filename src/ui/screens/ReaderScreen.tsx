@@ -5,7 +5,7 @@
 // Thanh tiêu đề: cuộn xuống tự ẩn; chạm giữa trang (cả khi chạm vào chữ) hoặc cuộn ngược lên là hiện lại.
 // Chạm mép trái/phải: lật lên/xuống
 // một trang (tắt được trong Aa). Nút Aa mở thanh chỉnh hiển thị. Cuối chương có thẻ tổng kết từ đã lưu.
-// Thanh tiến độ ở đáy có nút kéo nhanh: kéo nút sang trái/phải để chạy tới đâu đó trong chương (seekTo).
+// Mép phải có thanh kéo nhanh dọc (ReaderSeek): kéo nút lên/xuống để chạy tới đâu đó trong chương (seekTo).
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { AppSettings, Book, DictEntry, ReaderDisplay, SavedWord, VietMeaning } from '@/core/types';
@@ -25,6 +25,7 @@ import { useBack } from '../hooks/useBack';
 import { HIGHLIGHT_OK, pickText, useTextPick, type Pick } from '../hooks/useTextPick';
 import { ChapterNav } from '../components/ChapterNav';
 import { ReaderStatus } from '../components/ReaderStatus';
+import { ReaderSeek } from '../components/ReaderSeek';
 import { bookPercent, chapterLengths, chapterPosition, type ChapterPosition } from '@/services/readingProgress';
 import { IconBack, IconList } from '../icons';
 import type { DictState } from '../App';
@@ -401,6 +402,13 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
           page={pos.page}
           pages={pos.pages}
           percent={bookPercent(lengths, chapter, pos.fraction)}
+        />
+      )}
+
+      {book && ch && (
+        <ReaderSeek
+          page={pos.page}
+          pages={pos.pages}
           fraction={pos.fraction}
           onSeek={seekTo}
           onSeeking={(active) => { seeking.current = active; if (active) setSel(null); }}
