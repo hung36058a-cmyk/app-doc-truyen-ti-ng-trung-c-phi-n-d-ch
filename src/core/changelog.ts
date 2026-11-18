@@ -9,6 +9,15 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '4.2',
+    date: '19/11/2026',
+    notes: [
+      'Sửa lỗi bấm giữ ở truyện tiếng Việt (và chữ không phải chữ Hán): giữ chỗ nào cũng tô nhầm chữ đầu đoạn. Giờ tô đúng vế câu chứa chữ dưới ngón tay',
+      'Truyện tiếng Việt: bấm giữ tô cả vế câu (không chỉ một từ); số như 3,4 hay 3.500 không bị cắt đôi',
+      'Bấm giữ trúng khe giữa hai dòng chữ cũng chọn được',
+    ],
+  },
+  {
     version: '4.1',
     date: '19/11/2026',
     notes: [

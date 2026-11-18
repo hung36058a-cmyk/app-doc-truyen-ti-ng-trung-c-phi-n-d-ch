@@ -66,7 +66,7 @@ function charRect(root: HTMLElement, pos: Pos): DOMRect | null {
 }
 
 /** Điểm trong chương nằm dưới toạ độ màn hình (x, y); null nếu không trúng chữ nào của truyện. */
-function posAt(root: HTMLElement, x: number, y: number): Pos | null {
+export function posAt(root: HTMLElement, x: number, y: number): Pos | null {
   // con trỏ và thanh nút nằm đè lên chữ: tạm cho chúng "trong suốt" với phép dò vị trí, nếu không sẽ dò trúng chúng
   const overlays = [...document.querySelectorAll<HTMLElement>('.pick-handle, .pick-bar')];
   overlays.forEach((el) => { el.style.pointerEvents = 'none'; });
