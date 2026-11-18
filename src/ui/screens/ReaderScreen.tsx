@@ -2,7 +2,8 @@
 // ("Chi tiết" mở bảng đầy đủ), bấm giữ để tô sẵn CẢ VẾ CÂU (services/sentence clauseAt) rồi TỰ CHỈNH bằng 2 con trỏ của app (hooks/useTextPick) rồi bấm
 // nút "Dịch phần đã chọn" ở đáy màn hình, nhớ vị trí đọc, mục lục.
 // Nút / cử chỉ Quay lại của điện thoại lùi từng bước: đóng lớp đang mở -> trang đọc -> thư viện (hooks/useBack).
-// Thanh tiêu đề: cuộn xuống tự ẩn; chạm giữa trang (cả khi chạm vào chữ) hoặc cuộn ngược lên là hiện lại.
+// Thanh tiêu đề: mặc định ẨN (đọc toàn màn hình). Chỉ hiện khi chạm vào chỗ trống ở GIỮA màn hình;
+// chạm vào chữ, cuộn, mở bảng tra từ/dịch đều KHÔNG làm nó hiện. Thanh nằm đè lên trang nên ẩn/hiện không làm chữ bị dịch.
 // Không có lật trang tự động: cuộn hoàn toàn bằng tay (hoặc kéo thanh dọc). Nút Aa mở thanh chỉnh hiển thị. Cuối chương có thẻ tổng kết từ đã lưu.
 // Mép phải có thanh kéo nhanh dọc (ReaderSeek): kéo nút lên/xuống để chạy tới đâu đó trong chương (seekTo).
 
@@ -64,15 +65,8 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
   const [savedList, setSavedList] = useState<SavedWord[]>([]);
   const saved = useMemo(() => new Set(savedList.map((w) => w.word)), [savedList]);
   const [looked, setLooked] = useState<Set<string>>(() => storage.lookups.list());
-  const [chrome, setChrome] = useState(true); // thanh tiêu đề đang hiện
+  const [chrome, setChrome] = useState(false); // thanh tiêu đề đang hiện (mặc định ẩn)
   const lastTop = useRef(0);
-  const chromeSettle = useRef(0); // trước thời điểm này không đổi thanh theo cuộn
-  const showChrome = (v: boolean) => {
-    setChrome((cur) => {
-      if (cur !== v) chromeSettle.current = Date.now() + 300;
-      return v;
-    });
-  };
   const [sel, setSel] = useState<Selection | null>(null);
   const [showToc, setShowToc] = useState(false);
   const [showDisplay, setShowDisplay] = useState(false);
@@ -143,17 +137,10 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
     updatePos();
     const el = body.current;
     if (el) {
-      // cuộn thì đóng bong bóng nhỏ (nó gắn với vị trí của từ); cuộn xuống thì ẩn thanh tiêu đề
+      // cuộn thì đóng bong bóng nhỏ (nó gắn với vị trí của từ); cuộn xuống thì ẩn thanh tiêu đề (cuộn KHÔNG bao giờ làm thanh hiện)
       if (sel && !sel.expanded) setSel(null);
       const delta = el.scrollTop - lastTop.current;
-      // cuộn ngược lên một chút là hiện lại thanh (không phải kéo lên tận đầu chương).
-      // Thanh ẩn/hiện làm khung đọc đổi chiều cao -> trình duyệt tự dịch scrollTop: bỏ qua các lần cuộn
-      // ngay sau đó và lúc đang chạm đáy chương, nếu không thanh sẽ nhấp nháy.
-      const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 4;
-      if (!seeking.current && Date.now() > chromeSettle.current && !atBottom) {
-        if (el.scrollTop < 8 || delta < -10) showChrome(true);
-        else if (delta > 12) showChrome(false);
-      }
+      if (!seeking.current && delta > 12) setChrome(false);
       lastTop.current = el.scrollTop;
     }
     window.clearTimeout(saveTimer.current);
@@ -177,7 +164,7 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
     setTrans(null);
     picker.clear();
     setChapter(next);
-    setChrome(true);
+    setChrome(false);
     restoreTo.current = 0;
     storage.progress.save({ bookId, chapterIndex: next, paragraphIndex: 0, updatedAt: Date.now() });
   };
@@ -187,7 +174,6 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
       if (!book) return;
       const text = book.chapters[chapter].paragraphs[para];
       setSel({ para, token, start: offset, end: offset + [...word].length, word, exact: false, sentence: sentenceAt(text, offset), expanded: false });
-      setChrome(true); // chạm vào chữ giữa trang cũng hiện thanh tiêu đề (có nút Aa)
       storage.lookups.add(word);
       setLooked((prev) => (prev.has(word) ? prev : new Set(prev).add(word)));
     },
@@ -259,12 +245,21 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
   useBack(sel !== null, () => setSel(null));
 
   // chạm vào chỗ không phải từ (khoảng trống, dấu câu, lề):
-  // đang mở bong bóng -> đóng · còn lại -> hiện/ẩn thanh tiêu đề (KHÔNG BAO GIỜ tự cuộn trang)
+  // đang mở bong bóng -> đóng · thanh đang hiện -> ẩn · chạm ở GIỮA màn hình -> hiện thanh (KHÔNG BAO GIỜ tự cuộn trang)
   const onBodyClick = (e: MouseEvent) => {
     const t = e.target as HTMLElement;
     if (t.closest('[data-t], button, a, .chapter-title, .chapter-end, .pick-handle')) return;
     if (sel) return setSel(null);
-    setChrome((v) => !v);
+    if (chrome) return setChrome(false);
+    if (isMiddleTap(e)) setChrome(true);
+  };
+
+  /** Chạm có nằm ở dải giữa màn hình (1/4 .. 3/4 chiều cao khung đọc) không. */
+  const isMiddleTap = (e: MouseEvent) => {
+    const r = body.current?.getBoundingClientRect();
+    if (!r) return false;
+    const y = (e.clientY - r.top) / r.height;
+    return y > 0.25 && y < 0.75;
   };
 
   /** Từ đang chọn trên trang (để đặt bong bóng nghĩa cạnh nó). */
@@ -310,13 +305,13 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
 
   return (
     <div class="reader" data-paper={d.paper} data-font={d.font} style={displayVars}>
-      <header class={`reader-head${chrome || sheetOpen ? '' : ' is-hidden'}`}>
+      <header class={`reader-head${chrome ? '' : ' is-hidden'}`} {...{ inert: !chrome }}>
         <button class="icon-btn" aria-label="Về thư viện" onClick={onClose}><IconBack /></button>
         <button class="chapter-btn" onClick={() => setShowToc(true)} aria-label="Mở mục lục">
           {chTitle || book?.title || ''}
         </button>
         <button class="icon-btn" aria-label="Mục lục" onClick={() => setShowToc(true)}><IconList /></button>
-        <button class="icon-btn aa-btn" aria-label="Chỉnh hiển thị" aria-pressed={showDisplay} onClick={() => { setSel(null); setShowDisplay((v) => !v); }}>
+        <button class="icon-btn aa-btn" aria-label="Chỉnh hiển thị" aria-pressed={showDisplay} onClick={() => { setSel(null); setChrome(false); setShowDisplay((v) => !v); }}>
           Aa
         </button>
       </header>

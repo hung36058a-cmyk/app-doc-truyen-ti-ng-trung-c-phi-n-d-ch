@@ -9,6 +9,14 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '4.0',
+    date: '18/11/2026',
+    notes: [
+      'Trang đọc toàn màn hình: thanh trên cùng (mục lục, Aa) mặc định ẩn, chỉ hiện khi chạm vào chỗ trống ở giữa màn hình; chạm vào chữ, cuộn hay mở bảng dịch không làm nó hiện nữa',
+      'Sửa lỗi chạm vào chữ gần mép trên làm cả trang bị dịch xuống: thanh trên cùng giờ nằm đè lên trang, ẩn/hiện không đẩy chữ',
+    ],
+  },
+  {
     version: '3.9',
     date: '17/11/2026',
     notes: [
