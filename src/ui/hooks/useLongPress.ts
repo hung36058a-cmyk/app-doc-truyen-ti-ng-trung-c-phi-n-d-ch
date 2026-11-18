@@ -4,7 +4,7 @@
 import { useRef } from 'preact/hooks';
 
 export function useLongPress<T>(
-  pick: (target: HTMLElement) => T | null, // từ phần tử bị chạm, lấy ra thứ cần xử lý (null = bỏ qua)
+  pick: (target: HTMLElement, point?: { x: number; y: number }) => T | null, // từ phần tử bị chạm (+ toạ độ ngón tay), lấy ra thứ cần xử lý (null = bỏ qua)
   onLongPress: (value: T) => void,
   delay = 500,
 ) {
@@ -21,7 +21,7 @@ export function useLongPress<T>(
     handlers: {
       onPointerDown: (e: PointerEvent) => {
         fired.current = false;
-        const value = pick(e.target as HTMLElement);
+        const value = pick(e.target as HTMLElement, { x: e.clientX, y: e.clientY });
         if (value === null) return;
         start.current = { x: e.clientX, y: e.clientY };
         timer.current = window.setTimeout(() => {

@@ -19,19 +19,31 @@ export function sentenceAt(paragraph: string, offset: number): string {
   return chars.slice(start, end).join('').replace(/^[」』"”\s]+/, '').trim();
 }
 
-/** Dấu ngắt khi bấm giữ để tô chọn: mọi dấu câu và dấu ngoặc kép / ngoặc đơn. */
-const PICK_BREAKS = /[。．.！？!?；;…，,：:、「」『』"“”‘’（）()《》〈〉—\s]/;
+/** Dấu ngắt khi bấm giữ để tô chọn: mọi dấu câu và dấu ngoặc kép / ngoặc đơn.
+ *  KHÔNG ngắt ở dấu cách, để truyện tiếng Việt/Anh cũng tô cả vế chứ không chỉ một từ. */
+const PICK_BREAKS = /[。．.！？!?；;…，,：:、「」『』"“”‘’（）()《》〈〉—\n]/;
+const DIGIT = /[0-9０-９]/;
 
-/** Vế câu chứa ký tự `offset`: [start, end) theo ký tự, không gồm dấu ngắt hai đầu.
- *  null nếu `offset` rơi đúng vào một dấu. */
+/** chars[i] có phải chỗ ngắt vế không. Dấu . , : nằm giữa hai chữ số (3,4 · 3.500 · 10:30) không tính. */
+function isBreak(chars: string[], i: number): boolean {
+  const c = chars[i];
+  if (!PICK_BREAKS.test(c)) return false;
+  if (/[.,:．，：]/.test(c) && DIGIT.test(chars[i - 1] ?? '') && DIGIT.test(chars[i + 1] ?? '')) return false;
+  return true;
+}
+
+/** Vế câu chứa ký tự `offset`: [start, end) theo ký tự, không gồm dấu ngắt và khoảng trắng hai đầu.
+ *  null nếu `offset` rơi đúng vào một dấu (hoặc vế chỉ toàn khoảng trắng). */
 export function clauseAt(paragraph: string, offset: number): [number, number] | null {
   const chars = [...paragraph];
-  if (offset < 0 || offset >= chars.length || PICK_BREAKS.test(chars[offset])) return null;
+  if (offset < 0 || offset >= chars.length || isBreak(chars, offset)) return null;
   let start = offset;
-  while (start > 0 && !PICK_BREAKS.test(chars[start - 1])) start--;
+  while (start > 0 && !isBreak(chars, start - 1)) start--;
   let end = offset + 1;
-  while (end < chars.length && !PICK_BREAKS.test(chars[end])) end++;
-  return [start, end];
+  while (end < chars.length && !isBreak(chars, end)) end++;
+  while (start < end && /\s/.test(chars[start])) start++;
+  while (end > start && /\s/.test(chars[end - 1])) end--;
+  return end > start ? [start, end] : null;
 }
 
 export interface SentenceSpan {

@@ -23,7 +23,7 @@ import { CopyButton } from '../components/CopyButton';
 import { DisplayBar } from '../components/DisplayBar';
 import { useLongPress } from '../hooks/useLongPress';
 import { useBack } from '../hooks/useBack';
-import { HIGHLIGHT_OK, pickText, useTextPick, type Pick } from '../hooks/useTextPick';
+import { HIGHLIGHT_OK, pickText, posAt, useTextPick, type Pick } from '../hooks/useTextPick';
 import { ChapterNav } from '../components/ChapterNav';
 import { ReaderStatus } from '../components/ReaderStatus';
 import { ReaderSeek } from '../components/ReaderSeek';
@@ -209,19 +209,30 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
   // bấm giữ một chữ -> chọn từ đó và hiện 2 con trỏ của app để kéo chọn phần muốn dịch
   const picker = useTextPick(body, `${chapter}|${dictState}|${JSON.stringify(settings.reader)}|${book?.id ?? ''}`);
   const longPress = useLongPress<{ para: number; at: number; length: number }>(
-    (target) => {
+    (target, point) => {
       const p = target.closest<HTMLElement>('[data-p]');
       const span = target.closest<HTMLElement>('[data-o]');
-      return p && span ? { para: Number(p.dataset.p), at: Number(span.dataset.o), length: [...(span.textContent ?? '')].length } : null;
+      if (!p) return null; // giữ trúng khe giữa hai dòng (chưa trúng <span>) vẫn được, nhờ dò vị trí bên dưới
+      const para = Number(p.dataset.p);
+      // lấy ĐÚNG chữ dưới ngón tay. Không dùng vị trí đầu <span>: chữ không phải Hán (tiếng Việt, số…)
+      // gộp thành một <span> dài, lấy đầu span thì giữ chỗ nào cũng ra chữ đầu đoạn (lỗi v4.0).
+      const exact = point && body.current ? posAt(body.current, point.x, point.y) : null;
+      if (exact && exact.para === para) return { para, at: exact.at, length: 1 };
+      if (!span) return null;
+      return { para, at: Number(span.dataset.o), length: [...(span.textContent ?? '')].length };
     },
     ({ para, at, length }) => {
       setSel(null);
       setShowDisplay(false);
       // tô sẵn cả vế câu chứa chữ vừa giữ (ngắt ở mọi dấu câu / ngoặc kép), không chỉ một từ
       const text = book?.chapters[chapter]?.paragraphs[para] ?? '';
-      const c = clauseAt(text, at);
+      const n = [...text].length;
+      if (!n) return; // đoạn trống: không có gì để chọn
+      const i = Math.max(0, Math.min(at, n - 1));
+      // ngón tay ở nửa phải một chữ thì vị trí nhảy sang chữ kế (có thể là dấu): thử lùi 1 chữ
+      const c = clauseAt(text, i) ?? (i > 0 ? clauseAt(text, i - 1) : null) ?? clauseAt(text, i + 1);
       if (c) picker.start(para, c[0], c[1] - c[0]);
-      else picker.start(para, at, length);
+      else picker.start(para, i, Math.max(1, Math.min(length, n - i)));
     },
   );
 
