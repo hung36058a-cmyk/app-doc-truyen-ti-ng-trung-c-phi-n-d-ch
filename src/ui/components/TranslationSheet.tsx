@@ -7,6 +7,7 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { MeaningLang } from '@/core/types';
 import { useServices } from '../context';
+import { CopyButton } from './CopyButton';
 
 export type TransMode = 'selection' | 'paragraph';
 
@@ -89,13 +90,17 @@ export function TranslationSheet(p: Props) {
                 ))}
               </div>
             )}
-            <div class="sentence-reading">
+            <div class="sentence-reading has-copy">
               <div class="han" lang="zh-Hant">{p.source.text}</div>
               <div class="meta">[{pinyin}]</div>
+              <CopyButton class="corner-copy" label="Chép chữ Trung" size={18} text={p.source.text} />
             </div>
           </>
         ) : (
-          <blockquote class="trans-source" lang="zh-Hant">{p.paragraph}</blockquote>
+          <div class="has-copy">
+            <blockquote class="trans-source" lang="zh-Hant">{p.paragraph}</blockquote>
+            <CopyButton class="corner-copy" label="Chép đoạn chữ Trung" size={18} text={p.paragraph} />
+          </div>
         )}
 
         <div class="trans-box" aria-live="polite">
@@ -110,6 +115,7 @@ export function TranslationSheet(p: Props) {
               </>
             ))}
           {result.status === 'error' && <span class="meta">{result.message}</span>}
+          {result.status === 'done' && <CopyButton class="corner-copy" label="Chép bản dịch" size={18} text={result.text} />}
         </div>
 
         <div class="trans-actions">

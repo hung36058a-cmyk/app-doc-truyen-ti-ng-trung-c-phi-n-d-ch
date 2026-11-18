@@ -43,3 +43,9 @@ export const IconSpeaker = ({ size = 20 }: P) => (
 export const IconTrash = ({ size = 18 }: P) => (
   <svg width={size} height={size} viewBox="0 0 24 24" {...base}><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>
 );
+export const IconCopy = ({ size = 20 }: P) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" {...base}><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" /></svg>
+);
+export const IconCheck = ({ size = 20 }: P) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" {...base}><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+);

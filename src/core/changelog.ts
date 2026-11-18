@@ -9,6 +9,14 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '4.1',
+    date: '19/11/2026',
+    notes: [
+      'Thêm nút Sao chép: ở thanh chọn chữ (giữa "Bỏ chọn" và "Dịch"), trong khung dịch (chép chữ Trung và chép bản dịch) và trong bảng tra từ chi tiết (chép từ/cụm đang xem)',
+      'Bấm chép xong icon đổi thành dấu ✓ để biết đã chép',
+    ],
+  },
+  {
     version: '4.0',
     date: '18/11/2026',
     notes: [
