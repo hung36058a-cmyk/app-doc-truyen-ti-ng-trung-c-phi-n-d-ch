@@ -7,6 +7,7 @@ import { useSynonyms } from '../hooks/useSynonyms';
 import { useWordLookup, type VietState } from '../hooks/useWordLookup';
 import { IconSpeaker, IconStar } from '../icons';
 import { AiTierToggle } from './AiTierToggle';
+import { CopyButton } from './CopyButton';
 import { PhraseParts } from './PhraseParts';
 import { PosTag } from './PosTag';
 
@@ -71,7 +72,10 @@ export function WordSheet(p: Props) {
         <div class="grip" aria-hidden="true" />
         <div class="sheet-top">
           <div>
-            <div class="sheet-word">{phrase}</div>
+            <div class="sheet-word-row">
+              <div class="sheet-word">{phrase}</div>
+              <CopyButton class="word-copy" label={`Chép ${phrase}`} size={18} text={phrase} />
+            </div>
             <div class="sheet-reading">
               {pinyins.join(' / ') || '—'} · [{hanviet}]
             </div>

@@ -19,6 +19,7 @@ import { ChapterEnd } from '../components/ChapterEnd';
 import { TocSheet } from '../components/TocSheet';
 import { displayTitles, isTocPage } from '@/services/tocTitles';
 import { TranslationSheet, type TransMode, type TransSource } from '../components/TranslationSheet';
+import { CopyButton } from '../components/CopyButton';
 import { DisplayBar } from '../components/DisplayBar';
 import { useLongPress } from '../hooks/useLongPress';
 import { useBack } from '../hooks/useBack';
@@ -224,6 +225,9 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
     },
   );
 
+  // chữ đang chọn (để nút Chép lấy đúng lúc bấm)
+  const pickedText = () => (picker.pick && book ? pickText(book.chapters[chapter].paragraphs, picker.pick) : '');
+
   const openPicked = () => {
     const pk = picker.pick;
     if (!pk || !book) return;
@@ -405,6 +409,7 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
       {picker.pick && !trans && (
         <div class="pick-bar">
           <button class="btn pick-cancel" onClick={picker.clear}>Bỏ chọn</button>
+          <CopyButton class="pick-copy" label="Chép phần đã chọn" text={pickedText} />
           <button class="btn btn-primary" onClick={openPicked}>Dịch phần đã chọn</button>
         </div>
       )}

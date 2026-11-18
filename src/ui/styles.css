@@ -685,7 +685,7 @@ button.phrase-part { min-height: 40px; cursor: pointer; }
   position: fixed; z-index: 25; left: 50%; transform: translateX(-50%); display: flex; gap: 8px;
   bottom: calc(40px + env(safe-area-inset-bottom, 0px));
 }
-.pick-bar .btn { height: 48px; padding: 0 20px; border-radius: 24px; font-size: 16px; white-space: nowrap; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); }
+.pick-bar .btn { height: 48px; padding: 0 16px; border-radius: 24px; font-size: 16px; white-space: nowrap; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); }
 .pick-bar .pick-cancel { background: var(--surface); }
 
 /* ---------- v3.7: giao diện "Đêm xanh" + bìa đủ tên truyện ---------- */
@@ -726,3 +726,24 @@ button.phrase-part { min-height: 40px; cursor: pointer; }
   background: var(--surface-2); color: var(--fg); border: 1px solid var(--line-strong);
   font: 600 14px/1 var(--font-ui); font-variant-numeric: tabular-nums; white-space: nowrap; pointer-events: none;
 }
+
+/* ---------- v4.1: nút Sao chép ---------- */
+.copy-btn { color: var(--muted); }
+.copy-btn.is-done { color: var(--accent); }
+/* nút chép nhỏ ở góc trên-phải một khối chữ (chữ Trung, bản dịch) */
+.has-copy { position: relative; }
+.has-copy, .trans-box { padding-right: 40px; }
+.has-copy .trans-source { margin-right: -40px; padding-right: 44px; }
+.corner-copy { position: absolute; top: 2px; right: 0; width: 38px; height: 38px; }
+/* thanh chọn chữ: nút tròn chỉ có icon, nằm giữa "Bỏ chọn" và "Dịch" */
+.pick-bar .pick-copy {
+  width: 48px; height: 48px; border-radius: 24px; background: var(--surface); border: 1px solid var(--line-strong);
+  color: var(--fg); padding: 0; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+.pick-bar .pick-copy.is-done { color: var(--accent); }
+/* chép không được: icon đỏ, rung nhẹ */
+.copy-btn.is-fail { color: var(--danger); animation: copy-shake 0.3s; }
+@keyframes copy-shake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+/* bảng tra từ: nút chép nằm ngay cạnh chữ Hán */
+.sheet-word-row { display: flex; align-items: center; gap: 2px; }
+.word-copy { width: 36px; height: 36px; }
