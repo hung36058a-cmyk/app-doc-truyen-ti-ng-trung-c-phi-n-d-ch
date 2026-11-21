@@ -747,3 +747,11 @@ button.phrase-part { min-height: 40px; cursor: pointer; }
 /* bảng tra từ: nút chép nằm ngay cạnh chữ Hán */
 .sheet-word-row { display: flex; align-items: center; gap: 2px; }
 .word-copy { width: 36px; height: 36px; }
+/* v4.3 bảng tra từ: hàng nút (Nâng cao, VI/EN) ở trên, bên phải; chữ Hán + pinyin bên dưới có cả bề ngang.
+   Chỉ áp cho bảng tra từ (.word-sheet-top), không đụng khung dịch / thanh Aa cũng dùng .sheet-top */
+.word-sheet-top { flex-direction: column; align-items: stretch; gap: 6px; }
+.word-sheet-top .sheet-top-right { justify-content: flex-end; }
+.sheet-head { min-width: 0; }
+.word-sheet-top .sheet-word-row { align-items: flex-start; }
+.word-sheet-top .sheet-word { flex: 0 1 auto; min-width: 0; }
+.word-sheet-top .word-copy { flex-shrink: 0; margin-top: 2px; }

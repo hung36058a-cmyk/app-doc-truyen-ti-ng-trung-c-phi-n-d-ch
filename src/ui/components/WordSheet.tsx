@@ -70,21 +70,22 @@ export function WordSheet(p: Props) {
       <button class="backdrop" aria-label="Đóng popup" onClick={p.onClose} />
       <section class="sheet" role="dialog" aria-label={`Nghĩa của ${phrase}`}>
         <div class="grip" aria-hidden="true" />
-        <div class="sheet-top">
-          <div>
-            <div class="sheet-word-row">
-              <div class="sheet-word">{phrase}</div>
-              <CopyButton class="word-copy" label={`Chép ${phrase}`} size={18} text={phrase} />
-            </div>
-            <div class="sheet-reading">
-              {pinyins.join(' / ') || '—'} · [{hanviet}]
-            </div>
-          </div>
+        {/* v4.3: nút Nâng cao + VI/EN nằm hàng riêng ở trên, để chữ Hán + pinyin có cả bề ngang (không bị ép thành cột dọc) */}
+        <div class="sheet-top word-sheet-top">
           <div class="sheet-top-right">
             <AiTierToggle value={p.aiMode} onChange={p.onAiMode} />
             <div class="seg" role="group" aria-label="Ngôn ngữ nghĩa">
               <button aria-pressed={p.lang === 'vi'} onClick={() => p.onLang('vi')}>VI</button>
               <button aria-pressed={p.lang === 'en'} onClick={() => p.onLang('en')}>EN</button>
+            </div>
+          </div>
+          <div class="sheet-head">
+            <div class="sheet-word-row">
+              <div class="sheet-word" lang="zh-Hant">{phrase}</div>
+              <CopyButton class="word-copy" label={`Chép ${phrase}`} size={18} text={phrase} />
+            </div>
+            <div class="sheet-reading">
+              {pinyins.join(' / ') || '—'} · [{hanviet}]
             </div>
           </div>
         </div>
