@@ -9,6 +9,13 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '4.3',
+    date: '21/11/2026',
+    notes: [
+      'Bảng tra từ chi tiết: nút "Nâng cao" và VI/EN chuyển lên một hàng riêng ở trên cùng. Chữ Hán và pinyin giờ nằm ngang hết bề rộng màn hình, thành ngữ dài không còn bị ép thành cột dọc',
+    ],
+  },
+  {
     version: '4.2',
     date: '19/11/2026',
     notes: [
