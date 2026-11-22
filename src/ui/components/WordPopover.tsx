@@ -1,6 +1,7 @@
 // ui/components/WordPopover.tsx — Bong bóng tra từ nhỏ hiện ngay trên (hoặc dưới) từ vừa chạm:
 // từ, pinyin · Hán Việt, nghĩa ngắn, nút Lưu / Nghe / Chi tiết. Không che trang như bảng đầy đủ,
 // nên tra nhiều từ liên tiếp không mất mạch đọc. "Chi tiết" mở bảng đầy đủ (WordSheet).
+// v4.4: bấm thẳng một từ nhỏ của cụm là mở luôn bảng đầy đủ của từ đó (có bong bóng quay lại cụm).
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import type { AiMode, DictEntry, MeaningLang, VietMeaning } from '@/core/types';
@@ -8,7 +9,8 @@ import { canSpeak, speak } from '@/modules/speech/speak';
 import { useWordLookup, type WordLookup } from '../hooks/useWordLookup';
 import { IconSpeaker, IconStar } from '../icons';
 import { AiTierToggle } from './AiTierToggle';
-import { PhraseParts } from './PhraseParts';
+import { PhraseParts, SavedStar } from './PhraseParts';
+import type { PhraseBack, WordNav } from './WordSheet';
 import { PosTag } from './PosTag';
 
 interface Props {
@@ -24,6 +26,7 @@ interface Props {
   aiMode: AiMode; // 'save' = Dịch tự động, 'quality' = Dịch nâng cao
   onAiMode: (m: AiMode) => void;
   onExpand: () => void;
+  onPick: (word: string, from: PhraseBack, nav: WordNav) => void; // bấm một từ nhỏ của cụm: mở bảng đầy đủ của từ đó
 }
 
 /** Khoảng cách tối thiểu tới mép màn hình và tới từ được chạm. */
@@ -77,6 +80,7 @@ export function WordPopover(p: Props) {
     >
       <div class="word-pop-head">
         <span class="word-pop-word" lang="zh-Hant">{look.phrase}</span>
+        {p.isSaved(look.phrase) && <SavedStar size={14} />}
         <span class="word-pop-reading">
           {look.pinyins[0] || '—'} <span class="word-pop-hv">[{look.hanviet}]</span>
         </span>
@@ -88,7 +92,15 @@ export function WordPopover(p: Props) {
         )}
       </div>
       <div class="word-pop-meaning" aria-live="polite"><ShortMeaning look={look} lang={p.lang} isPhrase={hasPhrase} /></div>
-      <PhraseParts parts={look.parts} />
+      <PhraseParts
+        parts={look.parts}
+        isSaved={p.isSaved}
+        onPick={(w, i) => p.onPick(
+          w,
+          { word: p.word, exact: p.exact, phrase: look.phrase, meaning: look.vietValue?.meaning ?? '', pos: look.vietValue?.partOfSpeech, parts: look.parts },
+          { items: look.parts.map((x) => x.text), index: i },
+        )}
+      />
       <div class="word-pop-actions">
         {p.isSaved(look.phrase) ? (
           <button class="btn word-pop-saved" onClick={() => p.onUnsave(look.phrase)}><IconStar size={16} filled /> Đã lưu</button>

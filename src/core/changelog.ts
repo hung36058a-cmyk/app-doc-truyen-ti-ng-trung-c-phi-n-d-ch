@@ -9,6 +9,15 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '4.4',
+    date: '22/11/2026',
+    notes: [
+      'Từ đã lưu có sao vàng nhỏ cạnh chữ Hán: trong bảng chi tiết, bong bóng tra từ và các từ tách nhỏ của cụm',
+      'Bong bóng tra cụm: bấm thẳng vào một từ tách nhỏ là mở luôn chi tiết từ đó, không cần qua nút "Chi tiết"',
+      'Bảng chi tiết: đổi sang từ khác (bấm từ nhỏ, nút ‹ ›, quay lại cụm) không còn bị kéo lên đầu, màn hình giữ nguyên chỗ đang đọc',
+    ],
+  },
+  {
     version: '4.3',
     date: '21/11/2026',
     notes: [

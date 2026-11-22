@@ -755,3 +755,12 @@ button.phrase-part { min-height: 40px; cursor: pointer; }
 .word-sheet-top .sheet-word-row { align-items: flex-start; }
 .word-sheet-top .sheet-word { flex: 0 1 auto; min-width: 0; }
 .word-sheet-top .word-copy { flex-shrink: 0; margin-top: 2px; }
+
+/* ---------- v4.4: sao nhỏ cạnh từ đã lưu (bảng chi tiết, bong bóng, các từ nhỏ của cụm) ---------- */
+.saved-star { display: inline-flex; flex-shrink: 0; color: #E09A1B; align-self: center; line-height: 0; }
+.sheet-word-row .saved-star { align-self: flex-start; margin: 6px 2px 0 4px; }
+.phrase-part .saved-star { align-self: center; margin-left: -2px; }
+.word-pop-head .saved-star { align-self: center; }
+/* v4.4: phần nội dung của bảng tra từ (đổi theo từ), khung .sheet giữ nguyên để không mất chỗ cuộn */
+.sheet-body { display: flex; flex-direction: column; gap: 12px; flex-shrink: 0; }
+.sheet-body > * { flex-shrink: 0; }
