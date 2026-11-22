@@ -453,6 +453,7 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
           onUnsave={unsaveWord}
           onPhrase={(phrase) => setSel((s) => (s && s.phrase !== (phrase ?? undefined) ? { ...s, phrase: phrase ?? undefined } : s))}
           onExpand={() => setSel({ ...sel, expanded: true })}
+          onPick={(w, from, nav) => setSel({ ...sel, expanded: true, word: w, exact: true, back: from, nav })}
           aiMode={settings.aiMode}
           onAiMode={(m) => onSettings({ aiMode: m })}
         />
@@ -460,7 +461,6 @@ export function ReaderScreen({ bookId, dictState, settings, onSettings, onClose 
 
       {sel && sel.expanded && (
         <WordSheet
-          key={`${sel.word}|${sel.exact}|${sel.sentence}`}
           word={sel.word}
           sentence={sel.sentence}
           exact={sel.exact}
