@@ -106,7 +106,7 @@ export function SettingsScreen({ settings, onChange, dictState }: Props) {
         <div class="setting">
           <span class="setting-label">
             Từ điển offline
-            <small>CC-CEDICT (nghĩa Anh, pinyin), CVDICT của Phong Phan (nghĩa Việt, CC BY-SA 4.0) và Unihan (âm Hán Việt)</small>
+            <small>CC-CEDICT (nghĩa Anh, pinyin), CVDICT của Phong Phan (nghĩa Việt, CC BY-SA 4.0) và hanviet-pinyin-words của Phong Phan (âm Hán Việt, MIT)</small>
           </span>
           <span class="meta">{dictState === 'ready' ? 'Sẵn sàng' : dictState === 'loading' ? 'Đang tải…' : 'Lỗi tải'}</span>
         </div>

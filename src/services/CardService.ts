@@ -22,7 +22,9 @@ export class CardService {
   async generate(w: SavedWord): Promise<CardContent> {
     const entry = this.dict.lookup(w.word);
     const dictPinyin = w.pinyin || entry?.senses[0]?.pinyin || '';
-    const dictHv = w.hanviet || this.dict.hanviet(w.word);
+    // Hán Việt luôn tính lại từ từ điển (bản 4.5 sửa âm sai); từ điển thiếu chữ thì mới dùng âm đã lưu lúc lưu từ
+    const freshHv = entry?.hanviet ?? this.dict.hanviet(w.word);
+    const dictHv = freshHv.includes('?') && w.hanviet && !w.hanviet.includes('?') ? w.hanviet : freshHv;
     const text = await this.ai.complete(
       cardContentPrompt({ word: w.word, sentence: w.sentence, pinyin: dictPinyin, english: w.english, hanviet: dictHv }),
       { quality: 'quick' }, // thẻ luôn dùng Gemini Flash; Pro chỉ dành cho "Dịch nâng cao"

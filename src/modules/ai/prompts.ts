@@ -2,11 +2,21 @@
 
 import { POS_CODES_PHRASE, POS_CODES_WORD } from '@/services/partOfSpeech';
 
-/** Dịch NHANH một câu / một đoạn người dùng tự tô chọn: chỉ bản dịch, prompt ngắn để AI trả lời sớm nhất. */
-export function translateFastPrompt(text: string, target: 'vi' | 'en', context: string): string {
-  const lang = target === 'vi' ? 'tiếng Việt thuần (không dùng âm Hán Việt khi có từ thuần Việt)' : 'tiếng Anh';
-  return `Dịch sang ${lang}, tự nhiên, đúng nghĩa trong truyện. CHỈ trả về bản dịch, không ghi chú, không phiên âm.
-${context ? `Ngữ cảnh trước đó (không dịch): ${context}\n` : ''}Cần dịch: ${text}`;
+/**
+ * Dịch NHANH một câu / một đoạn người dùng tự tô chọn: chỉ bản dịch, prompt ngắn để AI trả lời sớm nhất.
+ * hanviet = âm Hán Việt CHUẨN từng chữ (từ điển offline), để AI phiên tên riêng đúng, không đoán âm.
+ */
+export function translateFastPrompt(text: string, target: 'vi' | 'en', context: string, hanviet = ''): string {
+  if (target === 'en') {
+    return `Translate this passage from a Traditional Chinese novel into natural English, faithful to the meaning in context. Return ONLY the translation.
+${context ? `Previous context (do not translate): ${context}\n` : ''}Text: ${text}`;
+  }
+  return `Dịch đoạn truyện tiếng Trung sau sang tiếng Việt tự nhiên như người Việt viết, đúng nghĩa theo ngữ cảnh.
+- Dùng từ thuần Việt cho lời kể, lời thoại; không dịch word-by-word, không để câu cứng kiểu convert.
+- TÊN RIÊNG (người, địa danh, môn phái, chiêu thức, danh hiệu): viết bằng âm Hán Việt, viết hoa chữ đầu mỗi âm${hanviet ? ', lấy ĐÚNG âm trong dòng "Âm Hán Việt" bên dưới, không tự đoán' : ''}.
+- Xưng hô (anh/em, ta/ngươi, hắn, nàng…) hợp quan hệ nhân vật và ngữ cảnh.
+CHỈ trả về bản dịch, không ghi chú, không phiên âm.
+${context ? `Ngữ cảnh trước đó (không dịch): ${context}\n` : ''}${hanviet ? `Âm Hán Việt từng chữ (chỉ để tra tên riêng): ${hanviet}\n` : ''}Cần dịch: ${text}`;
 }
 
 export interface CardPromptInput {
