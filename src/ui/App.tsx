@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import type { AppSettings } from '@/core/types';
 import { createServices } from '@/services/container';
+import { fixSavedHanviet } from '@/services/hanvietMigration';
 import { ServicesContext } from './context';
 import { APP_VERSION } from '@/core/changelog';
 import { BottomNav, type Tab } from './components/BottomNav';
@@ -30,7 +31,10 @@ export function App() {
 
   useEffect(() => {
     services.dictionary.load().then(
-      () => setDictState('ready'),
+      () => {
+        setDictState('ready');
+        fixSavedHanviet(services.dictionary, services.storage.words).catch(() => {});
+      },
       () => setDictState('error'),
     );
     const onHash = () => setTab(tabFromHash());

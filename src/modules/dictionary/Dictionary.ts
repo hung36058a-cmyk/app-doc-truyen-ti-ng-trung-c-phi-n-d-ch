@@ -12,6 +12,6 @@ export interface Dictionary {
   readonly maxWordLength: number;
   /** Tra một từ; trả null nếu không có. */
   lookup(word: string): DictEntry | null;
-  /** Âm Hán Việt của một chuỗi chữ ("?" cho chữ thiếu dữ liệu). */
-  hanviet(text: string): string;
+  /** Âm Hán Việt của một chuỗi chữ ("?" cho chữ thiếu dữ liệu). pinyin số (vd "zhong1 guo2") giúp chọn đúng âm cho chữ nhiều cách đọc. */
+  hanviet(text: string, pinyin?: string): string;
 }

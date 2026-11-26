@@ -1,9 +1,9 @@
 // sw.js — Service worker: lưu app + từ điển vào máy để mở được khi không có mạng.
 // Đổi VERSION mỗi khi phát hành bản mới để điện thoại tải bản mới về.
 
-const VERSION = 'v28';
+const VERSION = 'v29';
 const CACHE = `doc-truyen-${VERSION}`;
-const CORE = ['./', './index.html', './manifest.webmanifest', './data/cedict.tsv', './data/hanviet.tsv', './icons/icon-192.png'];
+const CORE = ['./', './index.html', './manifest.webmanifest', './data/cedict.tsv', './data/hanviet-v2.tsv', './icons/icon-192.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(CORE)).then(() => self.skipWaiting()));

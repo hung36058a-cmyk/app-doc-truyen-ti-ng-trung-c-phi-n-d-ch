@@ -1,3 +1,4 @@
 node_modules/
 dist/
 artifact/
+scripts/__pycache__/

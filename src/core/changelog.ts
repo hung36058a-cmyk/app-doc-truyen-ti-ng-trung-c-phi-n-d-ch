@@ -9,6 +9,15 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '4.5',
+    date: '26/11/2026',
+    notes: [
+      'Sửa âm Hán Việt: đổi sang bộ dữ liệu Hán Việt chuẩn (tổng hợp từ Thiều Chửu, Trần Văn Chánh…). Bản cũ lấy nhầm âm Nôm nên ra 你 "nể", 鏡 "kẻng", 馭 "ngựa"; giờ đúng là nễ, kính, ngự',
+      'Chữ nhiều cách đọc chọn âm theo pinyin của từ: 快樂 = khoái lạc, 音樂 = âm nhạc; 銀行 = ngân hàng, 行動 = hành động',
+      'Các từ đã lưu trước đây được tự sửa lại âm Hán Việt một lần khi mở app',
+    ],
+  },
+  {
     version: '4.4',
     date: '22/11/2026',
     notes: [

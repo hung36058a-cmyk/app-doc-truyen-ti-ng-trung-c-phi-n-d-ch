@@ -34,7 +34,7 @@ export function createServices(): Services {
   const storage = createDexieStorage();
   const dictionary = new CedictDictionary({
     cedictUrl: './data/cedict.tsv',
-    hanvietUrl: './data/hanviet.tsv',
+    hanvietUrl: './data/hanviet-v2.tsv',
   });
   const segmenter = new MaxMatchSegmenter(dictionary);
   // Thứ tự ưu tiên: Claude trên claude.ai trước, rồi tới các API key riêng theo thứ tự người dùng xếp
