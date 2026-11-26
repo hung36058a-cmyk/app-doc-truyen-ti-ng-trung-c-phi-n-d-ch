@@ -48,8 +48,11 @@ export class CedictDictionary implements Dictionary {
       if (!ch || !data) continue;
       const byPinyin = new Map<string, string[]>();
       for (const part of data.split(';')) {
-        const [py, readings] = part.split(':');
-        if (py && readings) byPinyin.set(py, readings.split(','));
+        // tách ở dấu ":" CUỐI: pinyin có thể chứa ":" (nu:3 = nǚ)
+        const k = part.lastIndexOf(':');
+        const py = part.slice(0, k);
+        const readings = part.slice(k + 1);
+        if (k > 0 && readings) byPinyin.set(py, readings.split(','));
       }
       if (byPinyin.size) this.hv.set(ch, byPinyin);
     }
@@ -66,6 +69,14 @@ export class CedictDictionary implements Dictionary {
     // Hán Việt theo cách đọc đứng đầu (cách đọc đang hiện trên popup)
     const raw = this.rawPinyin.get(word)?.[senses.indexOf(ordered[0])];
     return { word, senses: ordered, hanviet: this.hanvietWithPinyin(word, raw) };
+  }
+
+  /** Hán Việt theo đúng cách đọc đã chọn (pinyin có dấu, vd "háng"); không khớp cách đọc nào thì như lookup. */
+  hanvietForPinyin(word: string, markedPinyin: string): string {
+    const senses = this.words.get(word);
+    const i = senses ? senses.findIndex((s) => s.pinyin === markedPinyin) : -1;
+    const raw = i >= 0 ? this.rawPinyin.get(word)?.[i] : undefined;
+    return raw ? this.hanvietWithPinyin(word, raw) : (this.lookup(word)?.hanviet ?? this.hanviet(word));
   }
 
   /** Hán Việt của một chuỗi bất kỳ: tách thành các từ có trong từ điển để biết pinyin từng chữ, rồi chọn âm. */

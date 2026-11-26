@@ -48,14 +48,27 @@ def new_style(syl: str) -> str:
     return unicodedata.normalize("NFC", base[:j] + tone + base[j:])
 
 
+# Sửa tay những chỗ dữ liệu gốc khác cách người Việt quen đọc (âm đầu = âm app hiện).
+# Thấy chữ nào sai thì thêm vào đây rồi chạy lại script.
+OVERRIDES = {
+    "率": {"lu:4": ["suất", "luật"]},  # 效率 hiệu suất, 機率 cơ suất (không phải "hiệu luật")
+}
+
+
 def main(src: str) -> None:
     text = Path(src).read_text(encoding="utf-8")
     data = json.loads(text[text.index("{") : text.rindex("}") + 1])
+    for ch, fix in OVERRIDES.items():
+        data.setdefault(ch, {}).update(fix)
     lines = []
     for ch, by_pinyin in data.items():
         parts = []
         for py, readings in by_pinyin.items():
             readings = [new_style(r.strip().lower()) for r in readings if r.strip()]
+            # mỗi chữ phải ra đúng MỘT âm tiết (app ghép theo dấu cách): bỏ âm nhiều chữ như "thập khắc",
+            # nếu chỉ có âm đó thì nối bằng gạch ngang
+            single = [r for r in readings if " " not in r]
+            readings = single or [r.replace(" ", "-") for r in readings]
             if readings:
                 parts.append(f"{py.lower()}:{','.join(dict.fromkeys(readings))}")
         if parts:

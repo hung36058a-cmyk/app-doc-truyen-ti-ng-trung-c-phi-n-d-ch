@@ -329,7 +329,7 @@
 牟	mou2:mưu,mâu;mu4:mưu,mâu
 猲	he4:hạt;xie1:yết
 猵	bian1:biên;pian4:biên
-率	lu:4:luật;shuai4:suất,soái,súy,soát
+率	lu:4:suất,luật;shuai4:suất,soái,súy,soát
 王	wang2:vương;wang4:vượng
 玟	min2:mân;wen2:văn
 瑱	tian4:thiến;zhen4:chấn,trấn
@@ -2522,8 +2522,8 @@
 克	*:khắc
 児	*:nhi
 兕	*:hủy
-兙	*:thập khắc
-兛	*:thiên khắc
+兙	*:thập-khắc
+兛	*:thiên-khắc
 兜	*:đâu
 兟	*:sân
 兢	*:căng
@@ -5415,7 +5415,7 @@
 瓢	*:biều
 瓣	*:biện
 瓤	*:nhương
-瓩	*:thiên ngõa
+瓩	*:thiên-ngõa
 瓬	*:phưởng
 瓴	*:linh
 瓶	*:bình
@@ -9115,7 +9115,7 @@
 圉	yu3:ngữ
 圌	chui2:thùy
 圏	quan1:khuyên
-圕	tuan1:thoan,đồ thư quán
+圕	tuan1:thoan
 土	tu3:thổ
 圻	qi2:kỳ
 圾	ji1:sắc

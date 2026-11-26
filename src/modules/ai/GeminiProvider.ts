@@ -10,7 +10,6 @@ const MODELS: Record<Quality, string[]> = {
   // (tên model theo trang ai.google.dev/gemini-api/docs/models, 15/11/2026)
   quick: ['gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-2.5-flash'],
   // dịch: 3.6 Flash đứng đầu vì nó cho mức nghĩ 'minimal' (gần như không nghĩ) — 3.8 Flash thấp nhất chỉ 'low'
-  // dịch câu/đoạn: ưu tiên TỐC ĐỘ — Flash-Lite (model nhanh nhất, mặc định 'minimal') đứng đầu, rồi mới tới Flash
   // v4.5: "Dịch tự động" đổi sang 3.6 Flash (mức nghĩ 'minimal' = gần như không nghĩ): dịch đúng hơn hẳn Flash-Lite,
   // chậm hơn chút ít. Flash-Lite chỉ còn là dự phòng khi Flash lỗi / hết lượt.
   fast: ['gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-2.5-flash', 'gemini-2.5-flash-lite'],
