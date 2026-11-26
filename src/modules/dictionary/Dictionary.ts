@@ -14,4 +14,6 @@ export interface Dictionary {
   lookup(word: string): DictEntry | null;
   /** Âm Hán Việt của một chuỗi chữ ("?" cho chữ thiếu dữ liệu). */
   hanviet(text: string): string;
+  /** Âm Hán Việt của một từ theo cách đọc đã chọn (pinyin có dấu thanh). */
+  hanvietForPinyin(word: string, markedPinyin: string): string;
 }

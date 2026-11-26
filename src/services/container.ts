@@ -55,7 +55,7 @@ export function createServices(): Services {
     () => [{ id: 'claude-ai', provider: artifactClaude }, ...storage.settings.load().aiKeys.map(keyEntry)],
   );
   const meanings = new MeaningService(dictionary, ai, storage.meanings);
-  const translations = new TranslationService(ai, storage.translations);
+  const translations = new TranslationService(ai, storage.translations, (t) => dictionary.hanviet(t));
   const cards = new CardService(ai, dictionary, loadSqlJs);
   const script = new TableScriptConverter('./data/s2t.tsv');
   return { storage, dictionary, segmenter, ai, meanings, translations, cards, script };

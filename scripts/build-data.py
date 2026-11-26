@@ -7,7 +7,7 @@ build-data.py — Tạo file dữ liệu từ điển gọn cho app (chạy 1 l�
 Đầu ra (public/data/):
   - cedict.tsv   : mỗi dòng "từ_phồn_thể<TAB>pinyin_số<TAB>nghĩa1 / nghĩa2"
                    (một từ nhiều cách đọc -> nhiều dòng)
-  - hanviet.tsv  : mỗi dòng "chữ<TAB>âm1,âm2"
+  - (cũ) hanviet.tsv từ Unihan: chỉ tạo khi thêm cờ --unihan-hanviet; bản dùng thật do scripts/build-hanviet.py tạo
 
 Cách chạy:
   python3 scripts/build-data.py <đường_dẫn_cedict.json> <đường_dẫn_unihan.db>
@@ -54,4 +54,6 @@ def build_hanviet(src: str) -> int:
 if __name__ == "__main__":
     OUT.mkdir(parents=True, exist_ok=True)
     print("cedict lines:", build_cedict(sys.argv[1]))
-    print("hanviet chars:", build_hanviet(sys.argv[2]))
+    # hanviet.tsv KHÔNG tạo ở đây nữa (Unihan lẫn âm Nôm, sai nhiều) — dùng scripts/build-hanviet.py
+    if len(sys.argv) > 2 and "--unihan-hanviet" in sys.argv:
+        print("hanviet chars:", build_hanviet(sys.argv[2]))

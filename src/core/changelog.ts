@@ -9,6 +9,17 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '4.5',
+    date: '26/11/2026',
+    notes: [
+      'Âm Hán Việt chuẩn hơn hẳn: đổi sang bộ dữ liệu Hán Việt theo pinyin (10.500 chữ). Bản cũ lẫn âm Nôm nên hay sai (看 ra "trầu", 你 ra "nể", 們 ra "món")',
+      'Chữ nhiều cách đọc lấy đúng âm theo từ: 銀行 = ngân hàng, 行走 = hành tẩu; 音樂 = âm nhạc, 快樂 = khoái lạc; 長大 = trưởng đại, 長城 = trường thành',
+      'Dịch tự động đổi từ Gemini Flash-Lite sang Gemini Flash: dịch đúng và tự nhiên hơn, vẫn nhanh (Flash-Lite còn làm dự phòng)',
+      'Khi dịch câu/đoạn, app gửi kèm âm Hán Việt chuẩn để AI viết tên người, địa danh, chiêu thức đúng âm, không tự đoán',
+      'Tạo thẻ Anki: Hán Việt luôn lấy lại theo dữ liệu mới. Thẻ cũ đã tạo muốn sửa thì bấm Tạo lại',
+    ],
+  },
+  {
     version: '4.4',
     date: '22/11/2026',
     notes: [
